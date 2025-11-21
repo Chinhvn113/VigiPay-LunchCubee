@@ -1,0 +1,18 @@
+# Core dependencies
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Database
+sqlalchemy>=2.0.0
+alembic
+
+# Authentication & Security
+passlib[bcrypt]
+python-jose[cryptography]
+python-dotenv
+
+# Utilities
+pydantic>=2.0.0
+pydantic-settings
+email-validator

@@ -1,0 +1,32 @@
+# Logs
+frontend/logs
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+frontend/node_modules
+frontend/dist
+frontend/dist-ssr
+frontend/*.local
+# Editor directories and files
+frontend/.vscode/*
+!.vscode/extensions.json
+frontend/.idea
+frontend/.DS_Store
+frontend/*.suo
+frontend/*.ntvs*
+frontend/*.njsproj
+frontend/*.sln
+frontend/*.sw?
+backend/*.pyc
+backend/src/__pycache__
+backend/src/chatbotvenv
+backend/src/authvenv
+backend/src/Data_Luadao
+backend/src/AIML_Dataset.csv
+backend/src/test.mp3
+backend/src/invoice.png
+backend/src/setup.sh
+backend/src/notebooka0aebb5fb9.ipynb

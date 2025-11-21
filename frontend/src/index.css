@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Banking Dashboard Dark Blue Theme - Enhanced Contrast */
+    --background: 222 47% 9%;
+    --foreground: 210 40% 98%;
+    
+    /* Deep Navy Gradient Background - Darker for better card contrast */
+    --gradient-start: 222 47% 9%;
+    --gradient-end: 221 83% 28%;
+    
+    /* Glassmorphism Card - Increased lightness for better visibility */
+    --glass-background: 221 50% 28%;
+    --glass-border: 210 40% 98%;
+    
+    --card: 221 50% 25%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 221 50% 25%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Electric Cyan Primary - Slightly brighter */
+    --primary: 188 95% 48%;
+    --primary-foreground: 222 47% 9%;
+    
+    /* Lime Green Accent - Slightly more vibrant */
+    --accent-green: 84 81% 75%;
+    --accent-green-foreground: 222 47% 9%;
+    
+    /* Secondary Deep Blue - Lighter for better contrast */
+    --secondary: 221 39% 32%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217 33% 22%;
+    --muted-foreground: 215 20% 60%;
+    
+    --accent: 188 95% 48%;
+    --accent-foreground: 222 47% 9%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 221 39% 35%;
+    --input: 221 39% 30%;
+    --ring: 188 95% 48%;
+    
+    --radius: 1rem;
+    
+    /* Sidebar - Darker than main for depth */
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 188 95% 48%;
+    --sidebar-primary-foreground: 222 47% 7%;
+    --sidebar-accent: 221 50% 22%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 221 39% 30%;
+    --sidebar-ring: 188 95% 48%;
+    
+    /* Purple Gradient for Special Cards */
+    --gradient-purple-start: 271 81% 56%;
+    --gradient-purple-end: 265 89% 42%;
+    
+    /* Chart Colors */
+    --chart-1: 188 95% 48%;
+    --chart-2: 84 81% 75%;
+    --chart-3: 221 83% 58%;
+    --chart-4: 271 81% 60%;
+    --chart-5: 142 76% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-[hsl(var(--gradient-start))] to-[hsl(var(--gradient-end))] text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Hide scrollbar completely to prevent layout shift */
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+  
+  html,
+  body {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  /* Prevent Radix UI from modifying body styles */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: linear-gradient(135deg, hsl(var(--glass-background) / 0.65), hsl(var(--glass-background) / 0.45));
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border) / 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), 0 0 0 1px hsl(var(--primary) / 0.03);
+  }
+  
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .glass-card-hover:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 8px 32px 0 hsl(var(--primary) / 0.2);
+    transform: translateY(-2px);
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  /* Prevent horizontal overflow and ensure consistent width */
+  * {
+    min-width: 0;
+  }
+}
+
+@layer base {
+  html {
+    /* 1. Always reserve space for the scrollbar, even when hidden.
+          This prevents the "flicker" or "jump" of the background. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    /* 2. Override Radix UI's attempt to add padding.
+          Radix tries to push content left to compensate for the scrollbar,
+          but since we used scrollbar-gutter, we don't need this. */
+    padding-right: 0px !important;
+    
+    /* 3. Prevent accidental horizontal scrolling */
+    overflow-x: hidden;
+  }
+}
+
+html {
+  /* Always reserve space for the scrollbar. 
+     This prevents the background layout from "jumping" when the menu opens. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  /* 
+     CRITICAL FIX: 
+     Radix UI adds 'padding-right' to the body when a modal/select opens.
+     Since we used 'scrollbar-gutter' above, we don't need that padding.
+     We force it to 0 to prevent your content from shifting to the left.
+  */
+  padding-right: 0px !important;
+  margin-right: 0px !important;
+  
+  /* Prevent accidental horizontal scrolling */
+  overflow-x: hidden;
+}
+
+/* Scrollbar and overflow fixes are now consolidated in the main @layer base section above */
