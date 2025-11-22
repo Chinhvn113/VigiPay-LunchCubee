@@ -54,6 +54,6 @@ npm run build
 ```
 npm run preview
 ```
-##🌐 Deploying the Frontend
+## 🌐 Deploying the Frontend
 Hosted via Naver Cloud Platform server with free duckdns domain
 
