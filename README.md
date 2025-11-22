@@ -42,7 +42,7 @@ It combines **fraud detection models**, **agentic chatbot workflows**, and **mul
 
 The system is composed of four connected modules that work together to provide a seamless and secure user experience. The diagram below illustrates the flow of data and interaction between these components.
 
-![VigiPay System Architecture Diagram](docs/system_architecture.png)
+![VigiPay System Architecture Diagram](docs/system_architecture.jpg)
 
 ---
 
@@ -141,6 +141,7 @@ npm run dev
 The application will be accessible at `http://localhost:5173`.
 
 ---
+
 
 
 
