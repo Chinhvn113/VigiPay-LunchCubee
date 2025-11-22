@@ -13,19 +13,6 @@ FastAPI-based backend for the Sentinel AI Chatbot using HyperClovaX API.
 🤖 **HyperClovaX AI**: Powered by CLOVA Studio's HCX-005 model  
 
 ## Installation
-
-### Option 1: Automatic Setup (Recommended)
-
-```bash
-bash setup.sh
-```
-
-This will:
-- Check Python installation
-- Create virtual environment
-- Install all dependencies
-- Display ready-to-run commands
-
 ### Option 2: Manual Setup
 
 ```bash
@@ -34,7 +21,7 @@ python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r src/requirements.txt
 ```
 
 ## Running the Server
@@ -42,7 +29,7 @@ pip install -r requirements.txt
 ### Development Mode (with auto-reload)
 
 ```bash
-uvicorn chat_api:app --reload --host 0.0.0.0 --port 5000
+uvicorn ./src/hyperclovax:app --reload --host 0.0.0.0 --port 6011
 ```
 
 **Features:**
@@ -53,22 +40,14 @@ uvicorn chat_api:app --reload --host 0.0.0.0 --port 5000
 ### Production Mode
 
 ```bash
-python chat_api.py
+python hyperclovax.py
 ```
 
 Or with Uvicorn workers for better performance:
 
 ```bash
-uvicorn chat_api:app --host 0.0.0.0 --port 5000 --workers 4
+uvicorn hyperclovax:app --host 0.0.0.0 --port 5000 --workers 4
 ```
-
-## API Documentation
-
-Once the server is running, visit:
-
-- **Swagger UI**: http://localhost:5000/docs
-- **ReDoc**: http://localhost:5000/redoc
-- **OpenAPI JSON**: http://localhost:5000/openapi.json
 
 ## API Endpoints
 
@@ -192,12 +171,13 @@ response = client.chat.completions.create(
 ## Project Structure
 
 ```
-src/backend/
-├── chat_api.py              # Main FastAPI application
-├── hyperclovax.py           # HyperClovaX API configuration
-├── requirements.txt         # Python dependencies
-├── setup.sh                 # Automated setup script
-└── README.md               # This file
+backend/src/
+├── hyperclovax.py           # HyperClovaX API configuration  
+├── randomforrest.py           # Machine Learning configuration  
+├── rag_db.py           # RAG milvus database configuration  
+├── requirements.txt         # Python dependencies  
+├── setup.sh                 # Automated setup script  
+└── README.md               # This file  
 ```
 
 ## Dependencies
@@ -222,7 +202,7 @@ pip install -r requirements.txt
 
 ### Port Already in Use
 
-**Error**: `Address already in use: ('0.0.0.0', 5000)`
+**Error**: `Address already in use: ('0.0.0.0', 6011)`
 
 **Solution**: Use a different port:
 ```bash
