@@ -442,14 +442,14 @@ const SafetyChecking = () => {
       </div>
 
       <AlertDialog open={showFraudAlert} onOpenChange={setShowFraudAlert}>
-        <AlertDialogContent className="max-w-2xl w-full sm:max-w-md md:max-w-xl">
-          <AlertDialogHeader>
+        <AlertDialogContent className="max-w-2xl w-full sm:max-w-md md:max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
+          <AlertDialogHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               <AlertDialogTitle>Potential Fraud Detected</AlertDialogTitle>
             </div>
           </AlertDialogHeader>
-          <AlertDialogDescription className="space-y-3">
+          <AlertDialogDescription className="flex-1 overflow-y-auto space-y-3 pr-4">
             <p className="font-semibold text-foreground break-words whitespace-pre-wrap">{fraudMessage}</p>
             {fraudImageData && (
               <img src={fraudImageData} alt="Suspicious transaction" className="w-full h-auto rounded-lg border" />
@@ -458,7 +458,7 @@ const SafetyChecking = () => {
               Please review the details carefully before proceeding. Do you want to continue or stop this transaction?
             </p>
           </AlertDialogDescription>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-shrink-0 mt-4">
             <AlertDialogCancel onClick={handleFraudStop}>Stop Transaction</AlertDialogCancel>
             <AlertDialogAction onClick={handleFraudContinue} className="bg-orange-600 hover:bg-orange-700">Skip & Continue</AlertDialogAction>
           </div>
