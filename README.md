@@ -8,6 +8,10 @@ It combines **fraud detection models**, **agentic chatbot workflows**, and **mul
 
 ## 🚀 Key Features
 
+### 💸 Real-Time Transaction Flow Safety
+- Fraud analysis pipeline detects suspicious transaction patterns.
+- Safe → Continue  
+- Potential Fraud → AI-driven deeper inspection.
 ### 🔍 Scam Checking Module
 - Detects scam messages using multimodal AI (text + voice + image).
 - Combines knowledge database with LLM-based reasoning.
@@ -24,11 +28,6 @@ It combines **fraud detection models**, **agentic chatbot workflows**, and **mul
   - **Fast Transfer** — Auto-fill + auto-transfer.
   - **General Chat** — Financial tips, problem solving, advice.
   - **Scam Check** — Pre-transfer safety filter.
-
-### 💸 Real-Time Transaction Flow Safety
-- Fraud analysis pipeline detects suspicious transaction patterns.
-- Safe → Continue  
-- Potential Fraud → AI-driven deeper inspection.
 
 ---
 
@@ -107,6 +106,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
 
 
