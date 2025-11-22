@@ -18,7 +18,7 @@ FastAPI-based backend using HyperClovaX API.
 ```
 .
 ├── backend/
-│   ├── src/main.py             # FastAPI application, all endpoints
+│   ├── src/hyperclovax.py             # FastAPI application, all endpoints
 │   ├── src/rag_db.py           # Milvus RAG database logic
 │   ├── src/randomforrest.py    # ML model loading/prediction logic
 │   └── requirements.txt        # Python dependencies
