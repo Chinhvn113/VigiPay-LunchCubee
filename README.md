@@ -40,41 +40,10 @@ It combines **fraud detection models**, **agentic chatbot workflows**, and **mul
 
 ## 🏗️ System Architecture
 
-The system is composed of four connected modules that work together to provide a seamless and secure user experience. A full architecture diagram is available in `/docs/system_architecture.png`.
+The system is composed of four connected modules that work together to provide a seamless and secure user experience. The diagram below illustrates the flow of data and interaction between these components.
 
-```mermaid
-graph TD
-    subgraph User Input
-        A[Text, Voice, Image]
-    end
+![VigiPay System Architecture Diagram](docs/system_architecture.png)
 
-    subgraph VigiPay Platform
-        B(Agentic Chatbot)
-        C(Multimodal Automation)
-        D(Transaction Flow)
-        E(Scam Checking Engine)
-    end
-    
-    subgraph AI & Data Layer
-        F[LLM Engine - HyperCLOVA X]
-        G[ML Fraud Model - Random Forest]
-        H[Vector DB - Milvus]
-        I[Relational DB - PostgreSQL/SQLite]
-    end
-
-    A --> B
-    B -- Intent Classification --> C
-    B -- Intent Classification --> D
-    B -- Intent Classification --> E
-
-    C -- OCR, ASR, NLU --> F
-    D -- Quantitative Data --> G
-    D -- Suspicious Case --> E
-    E -- RAG Search --> H
-    E -- Reasoning --> F
-
-    C & D & E --> I
-```
 ---
 
 ## 📁 Project Structure
@@ -172,6 +141,7 @@ npm run dev
 The application will be accessible at `http://localhost:5173`.
 
 ---
+
 
 
 
