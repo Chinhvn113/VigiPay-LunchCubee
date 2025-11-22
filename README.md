@@ -55,19 +55,33 @@ A full architecture diagram is included in `/docs/system_architecture.jpg`.
 ## 📁 Project Structure
 
 VigiPay/
+
 ├── backend/
+
 │ └── src/
+
 │ ├── fraud_detection/
+
 │ ├── intent_classifier/
+
 │ ├── multimodal_parser/
+
 │ ├── scam_checker/
+
 │ └── api/
+
 ├── frontend/
+
 │ ├── components/
+
 │ ├── pages/
+
 │ └── services/
+
 ├── docs/
+
 │ └── system_architecture.png
+
 └── README.md
 
 ---
@@ -104,4 +118,5 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
