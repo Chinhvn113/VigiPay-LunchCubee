@@ -13,8 +13,6 @@ FastAPI-based backend for the Sentinel AI Chatbot using HyperClovaX API.
 🤖 **HyperClovaX AI**: Powered by CLOVA Studio's HCX-005 model  
 
 ## Installation
-### Option 2: Manual Setup
-
 ```bash
 # Create virtual environment (optional)
 python3 -m venv venv
@@ -22,6 +20,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r src/requirements.txt
+```
+## Host milvus database
+```bash
+cd rag_database
+docker compose up -d
+```
+
+## Build RAG Database on custom data
+```
+cd src/
+python rag_db.py
 ```
 
 ## Running the Server
