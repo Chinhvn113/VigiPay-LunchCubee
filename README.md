@@ -4,9 +4,9 @@
 VigiPay is an intelligent banking platform that integrates **Scam Checking**, **AI Automation**, and **Multimodal Interaction** (text, voice, image) to deliver a safer and smarter online banking experience.  
 It combines **fraud detection models**, **agentic chatbot workflows**, and **multimodal analysis** to help users verify transactions, detect scam messages, and automate financial tasks.
 
-## App url:
+## App URL
 
-https://vigipay.duckdns.org
+**Live Application:** **[https://vigipay.duckdns.org](https://vigipay.duckdns.org)**
 ---
 
 ## 🚀 Key Features
@@ -109,6 +109,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
 
 
