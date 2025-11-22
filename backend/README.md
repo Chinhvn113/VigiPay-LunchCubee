@@ -1,7 +1,7 @@
 # Sentinel AI Chat Backend
 
 FastAPI-based backend for the Sentinel AI Chatbot using HyperClovaX API.
-
+---
 ## Features
 
 ✨ **Modern & Fast**: Built with FastAPI for high performance  
@@ -12,344 +12,165 @@ FastAPI-based backend for the Sentinel AI Chatbot using HyperClovaX API.
 🌐 **CORS Enabled**: Works seamlessly with frontend applications  
 🤖 **HyperClovaX AI**: Powered by CLOVA Studio's HCX-005 model  
 
-## Installation
+---
+## 🏗️ Project Structure
+
+```
+.
+├── backend/
+│   ├── src/main.py             # FastAPI application, all endpoints
+│   ├── src/rag_db.py           # Milvus RAG database logic
+│   ├── src/randomforrest.py    # ML model loading/prediction logic
+│   └── requirements.txt        # Python dependencies
+├── docker/
+│   └── docker-compose.yml      # Docker Compose for Milvus
+├── frontend/                   # React frontend application
+└── prompts/                    # Prompts for the LLM
+```
+
+---
+## 🚀 Getting Started
+
+### 1. Host Milvus Database
+Ensure Docker is running on your machine.
+
 ```bash
-# Create virtual environment (optional)
-python3 -m venv venv
+cd docker
+docker compose up -d
+```
+
+### 2. Build the RAG Knowledge Base
+This script embeds documents and inserts them into the Milvus collection.
+
+```bash
+cd backend/src/
+# (Optional) Add your own text files to the ../data directory
+python rag_db.py
+```
+
+### 3. Configure and Run the Backend
+
+```bash
+cd backend
+
+# Create and activate a virtual environment
+python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r src/requirements.txt
+
+# Create a .env file from the example
+cp .env.example .env
 ```
-## Host milvus database
+Now, open `backend/.env` and fill in your API keys for Naver Cloud services and other configurations.
+
+Finally, run the server from the `backend/src` directory:
 ```bash
-cd rag_database
-docker compose up -d
+# From inside the backend/src directory
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+The API will be available at `http://localhost:8000/docs` for interactive documentation.
+
+### 4. Configure and Run the Frontend
+Follow the setup instructions in the `frontend/README.md` file.
+
+---
+
+## 📖 API Endpoints
+
+All endpoints are prefixed with `/api`.
+
+### Authentication Endpoints (`/api/auth`)
+
+| Method | Endpoint             | Description                                          | Auth Required |
+| :----- | :------------------- | :--------------------------------------------------- | :------------ |
+| `POST` | `/register`          | Register a new user and create a default bank account. | No            |
+| `POST` | `/login`             | Log in a user and return JWT access/refresh tokens.    | No            |
+| `POST` | `/logout`            | Log out the current user (revokes tokens).           | Yes           |
+| `POST` | `/refresh`           | Obtain a new access token using a refresh token.     | No            |
+| `GET`  | `/me`                | Get the profile of the currently authenticated user.   | Yes           |
+| `GET`  | `/health`            | Health check for the authentication service.         | No            |
+
+### Banking & Finance Endpoints (`/api`)
+
+| Method | Endpoint                           | Description                                                           | Auth Required |
+| :----- | :--------------------------------- | :-------------------------------------------------------------------- | :------------ |
+| `GET`    | `/accounts`                        | Get all bank accounts for the current user.                           | Yes           |
+| `POST`   | `/accounts`                        | Create a new bank account for the current user.                       | Yes           |
+| `GET`    | `/accounts/{account_id}`           | Get details of a specific bank account.                               | Yes           |
+| `GET`    | `/bank-accounts/lookup/{acc_num}`  | Publicly look up an account holder's name by account number.          | No            |
+| `POST`   | `/transfers`                       | Create an external transfer transaction (simulated).                  | Yes           |
+| `POST`   | `/transfer/internal`               | Execute an internal transfer between two Sentinel Bank accounts.      | Yes           |
+| `GET`    | `/transfers`                       | Get the transfer history for the current user.                        | Yes           |
+| `GET`    | `/transfers/{transfer_id}`         | Get details of a specific transfer.                                   | Yes           |
+| `GET`    | `/transactions`                    | Get the general transaction history (income/expense) for the user.  | Yes           |
+| `GET`    | `/recent-recipients`               | Get a list of recently paid recipients for quick transfers.           | Yes           |
+
+### Savings Goals Endpoints (`/api/savings-goals`)
+
+| Method   | Endpoint                | Description                                        | Auth Required |
+| :------- | :---------------------- | :------------------------------------------------- | :------------ |
+| `GET`    | `/`                     | Get all savings goals for the current user.        | Yes           |
+| `POST`   | `/`                     | Create a new savings goal.                         | Yes           |
+| `GET`    | `/{goal_id}`            | Get details of a specific savings goal.            | Yes           |
+| `PUT`    | `/{goal_id}`            | Update a savings goal.                             | Yes           |
+| `DELETE` | `/{goal_id}`            | Delete a savings goal.                             | Yes           |
+| `GET`    | `/summary/{account_id}` | Get a financial summary for a specific bank account. | Yes           |
+
+
+### AI & ML Endpoints (`/api`)
+
+| Method | Endpoint                     | Description                                                                          | Auth Required |
+| :----- | :--------------------------- | :----------------------------------------------------------------------------------- | :------------ |
+| `POST` | `/chat`                      | General-purpose chat with intent detection (scam check vs. normal chat).             | Yes           |
+| `POST` | `/chat-with-rag`             | RAG-powered chat for scam detection, accepting text and images.                      | Yes           |
+| `POST` | `/voice-command`             | Process audio or text to extract structured commands (NLU).                          | Yes           |
+| `POST` | `/extract-transfer-details`  | Process an image or audio file to extract structured transfer details (JSON).        | Yes           |
+| `POST` | `/safety-check`              | Run a transaction through the Random Forest ML model for a fraud score.              | Yes           |
+| `POST` | `/unified-analyze`           | A single endpoint to intelligently process text or an image for various tasks.       | Yes           |
+| `POST` | `/process-receipt`           | OCR a receipt image and save it as a structured expense transaction.                 | Yes           |
+| `POST` | `/search`                    | Directly query the Milvus vector database for relevant documents.                    | No            |
+| `POST` | `/embeddings`                | Generate vector embeddings for a given text string.                                  | No            |
+
+---
+
+
+## 🛠️ Configuration
+
+### Environment Variables
+Create a `.env` file in the `backend/` directory to store your credentials. Do not commit this file to version control.
+
+```env
+# Generate with `openssl rand -hex 32`
+SECRET_KEY="your_jwt_secret_key"
+DATABASE_URL="sqlite:///./naver_bank.db" # Or postgresql://user:pass@host/db
+
+# Naver Cloud API Credentials
+CLOVA_OCR_API_URL="..."
+CLOVA_OCR_SECRET_KEY="..."
+CLOVA_SPEECH_INVOKE_URL="..."
+CLOVA_SPEECH_SECRET_KEY="..."
+
+# Milvus Connection
+MILVUS_HOST="localhost"
+MILVUS_PORT="19530"
 ```
 
-## Build RAG Database on custom data
-```
-cd src/
-python rag_db.py
-```
+---
 
-## Running the Server
+## 🔐 Security Best Practices
 
-### Development Mode (with auto-reload)
+1.  ✅ **Environment Variables**: All sensitive keys (`SECRET_KEY`, API keys) are loaded from a `.env` file and are not hardcoded.
+2.  ✅ **Authentication**: Endpoints are protected using JWT-based bearer token authentication.
+3.  ✅ **Password Hashing**: User passwords are securely hashed using `bcrypt`.
+4.  ✅ **CORS**: Cross-Origin Resource Sharing is configured to only allow requests from trusted frontend origins in a production environment.
+5.  ✅ **Input Validation**: Pydantic models automatically validate incoming request data to prevent injection and malformed data attacks.
 
-```bash
-uvicorn ./src/hyperclovax:app --reload --host 0.0.0.0 --port 6011
-```
+---
 
-**Features:**
-- Automatic reload on code changes
-- Debug mode enabled
-- Perfect for development
+## 📜 License
 
-### Production Mode
-
-```bash
-python hyperclovax.py
-```
-
-Or with Uvicorn workers for better performance:
-
-```bash
-uvicorn hyperclovax:app --host 0.0.0.0 --port 5000 --workers 4
-```
-
-## API Endpoints
-
-### POST `/api/chat`
-
-Send a message and receive an AI response.
-
-**Request:**
-```json
-{
-  "message": "How do I transfer money?",
-  "session_id": "user_session_123",
-  "system_prompt": "Optional custom system prompt"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "To transfer money, you can...",
-  "session_id": "user_session_123"
-}
-```
-
-**Parameters:**
-- `message` (required): User's message
-- `session_id` (optional): Session identifier for conversation history. Defaults to "default"
-- `system_prompt` (optional): Custom AI personality. Defaults to financial assistant prompt
-
-### POST `/api/chat/clear`
-
-Clear conversation history for a session.
-
-**Request:**
-```json
-{
-  "session_id": "user_session_123"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Chat history cleared",
-  "session_id": "user_session_123"
-}
-```
-
-### GET `/api/chat/history`
-
-Retrieve conversation history for a session.
-
-**Query Parameters:**
-- `session_id`: Session ID (default: "default")
-
-**Response:**
-```json
-{
-  "success": true,
-  "history": [
-    {"role": "user", "content": "Hello"},
-    {"role": "assistant", "content": "Hi! How can I help?"}
-  ],
-  "session_id": "user_session_123"
-}
-```
-
-### GET `/health`
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "service": "Sentinel AI Chat API"
-}
-```
-
-## Configuration
-
-### HyperClovaX API Settings
-
-Edit `hyperclovax.py` to configure:
-
-```python
-client = OpenAI(
-    api_key="your-api-key",
-    base_url="https://clovastudio.stream.ntruss.com/v1/openai"
-)
-```
-
-### Model Parameters (in `chat_api.py`)
-
-```python
-response = client.chat.completions.create(
-    model="HCX-005",           # Model to use
-    messages=messages,         # Conversation history
-    top_p=0.7,                # Diversity parameter (0-1)
-    temperature=0.5,          # Randomness parameter (0-2)
-    max_tokens=1024           # Maximum response length
-)
-```
-
-**Tuning Guide:**
-- **Temperature**: Controls randomness
-  - 0.0-0.3: Deterministic, focused responses
-  - 0.5-0.7: Balanced responses
-  - 0.8-2.0: Creative, diverse responses
-
-- **Top_p**: Controls diversity
-  - 0.3-0.5: Focused on likely tokens
-  - 0.7-0.9: More diverse outputs
-
-- **Max_tokens**: Maximum response length
-  - Lower values = faster responses but may cut off
-  - Higher values = complete responses but slower
-
-## Project Structure
-
-```
-backend/src/
-├── hyperclovax.py           # HyperClovaX API configuration  
-├── randomforrest.py           # Machine Learning configuration  
-├── rag_db.py           # RAG milvus database configuration  
-├── requirements.txt         # Python dependencies  
-├── setup.sh                 # Automated setup script  
-└── README.md               # This file  
-```
-
-## Dependencies
-
-- **fastapi**: Modern web framework
-- **uvicorn**: ASGI server
-- **python-multipart**: Multipart form data support
-- **openai**: OpenAI Python client
-- **pydantic**: Data validation
-- **slowapi**: Rate limiting (optional)
-
-## Troubleshooting
-
-### Import Errors
-
-**Error**: `No module named 'fastapi'`
-
-**Solution**: Make sure dependencies are installed:
-```bash
-pip install -r requirements.txt
-```
-
-### Port Already in Use
-
-**Error**: `Address already in use: ('0.0.0.0', 6011)`
-
-**Solution**: Use a different port:
-```bash
-uvicorn chat_api:app --port 8000
-```
-
-### HyperClovaX API Errors
-
-**Error**: `API rate limit exceeded`
-
-**Solution**: 
-- Implement rate limiting on the backend
-- Add request delays
-- Check API quota
-
-**Error**: `Invalid API key`
-
-**Solution**: 
-- Verify API key in `hyperclovax.py`
-- Check API key hasn't expired
-- Regenerate if necessary
-
-### Slow Responses
-
-**Causes & Solutions:**
-- Network latency: Check internet connection
-- Large conversation history: Clear old sessions
-- API overload: Use rate limiting, add workers
-- Slow AI model: Adjust `max_tokens` or `temperature`
-
-## Advanced Usage
-
-### Rate Limiting
-
-Prevent abuse with rate limiting:
-
-```bash
-pip install slowapi
-```
-
-Then in `chat_api.py`:
-
-```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-
-@app.post("/api/chat")
-@limiter.limit("5/minute")
-async def chat(chat_request: ChatRequest):
-    ...
-```
-
-### Database Persistence
-
-For production, store sessions in a database:
-
-```bash
-pip install sqlalchemy aiosqlite
-```
-
-Example with SQLAlchemy:
-
-```python
-from sqlalchemy import create_engine, Column, String, JSON
-from sqlalchemy.orm import sessionmaker
-
-engine = create_engine('sqlite:///./chat_history.db')
-Session = sessionmaker(bind=engine)
-
-# Store/retrieve conversations from database
-```
-
-### Docker Deployment
-
-Create `Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-CMD ["uvicorn", "chat_api:app", "--host", "0.0.0.0", "--port", "5000"]
-```
-
-Build and run:
-
-```bash
-docker build -t sentinel-chat-api .
-docker run -p 5000:5000 sentinel-chat-api
-```
-
-## Performance Tips
-
-1. **Use multiple workers**: `uvicorn chat_api:app --workers 4`
-2. **Enable caching**: Cache frequently asked questions
-3. **Optimize prompts**: Shorter system prompts are faster
-4. **Batch requests**: Group multiple messages
-5. **Use async**: Leverage async/await for I/O operations
-
-## Security Best Practices
-
-1. ✅ Store API keys in environment variables, not in code
-2. ✅ Use HTTPS in production
-3. ✅ Implement authentication/authorization
-4. ✅ Add rate limiting
-5. ✅ Validate all user inputs
-6. ✅ Log security events
-7. ✅ Keep dependencies updated
-
-## Environment Variables
-
-Create `.env` file:
-
-```bash
-# Optional: Override default API URL
-HYPERCLOVAX_API_KEY=your-api-key-here
-HYPERCLOVAX_API_URL=https://clovastudio.stream.ntruss.com/v1/openai
-
-# Server settings
-HOST=0.0.0.0
-PORT=5000
-```
-
-Load with:
-
-```python
-from dotenv import load_dotenv
-load_dotenv()
-```
-
-## License
-
-Built for VigiPay an AI assisted banking application.
+This project is built for VigiPay, an AI-assisted banking application.
 
 
