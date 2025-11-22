@@ -123,7 +123,7 @@ All endpoints are prefixed with `/api`.
 ## 🛠️ Configuration
 
 ### Environment Variables
-Create a `.env` file in the `backend/` directory to store your credentials. Do not commit this file to version control.
+Create a `.env` file in the `backend/` directory to store your credentials.
 
 ```env
 # Generate with `openssl rand -hex 32`
