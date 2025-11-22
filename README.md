@@ -60,23 +60,28 @@ VigiPay/
 
 │ └── src/
 
-│ ├── fraud_detection/
+│ ├── rag_database
 
-│ ├── intent_classifier/
-
-│ ├── multimodal_parser/
-
-│ ├── scam_checker/
-
-│ └── api/
+│ ├── prompts
 
 ├── frontend/
 
-│ ├── components/
+│ ├── public/
 
-│ ├── pages/
+│ ├── src/
 
-│ └── services/
+│ ├── apis
+
+│ ├── components
+│ ├── contexts
+
+│ ├── hooks
+
+│ ├── i18n
+
+│ ├── lib
+
+│ ├── pages
 
 ├── docs/
 
@@ -118,5 +123,6 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
 
