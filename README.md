@@ -48,7 +48,7 @@ The system is composed of four connected modules:
 4. **Scam Checking Engine**  
    Knowledge-based + LLM-based classification with SCAM/NOT SCAM output.
 
-A full architecture diagram is included in `/docs/system_architecture.png`.
+A full architecture diagram is included in `/docs/system_architecture.jpg`.
 
 ---
 
@@ -104,3 +104,4 @@ cd frontend
 npm install
 npm run dev
 ```
+
