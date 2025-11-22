@@ -13,29 +13,13 @@ FastAPI-based backend using HyperClovaX API.
 🤖 **HyperClovaX AI**: Powered by CLOVA Studio's HCX-005 model  
 
 ---
-## 🏗️ Project Structure
-
-```
-.
-├── backend/
-│   ├── src/hyperclovax.py             # FastAPI application, all endpoints
-│   ├── src/rag_db.py           # Milvus RAG database logic
-│   ├── src/randomforrest.py    # ML model loading/prediction logic
-│   └── requirements.txt        # Python dependencies
-├── docker/
-│   └── docker-compose.yml      # Docker Compose for Milvus
-├── frontend/                   # React frontend application
-└── prompts/                    # Prompts for the LLM
-```
-
----
 ## 🚀 Getting Started
 
 ### 1. Host Milvus Database
 Ensure Docker is running on your machine.
 
 ```bash
-cd docker
+cd rag_database
 docker compose up -d
 ```
 
