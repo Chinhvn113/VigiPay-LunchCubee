@@ -77,11 +77,11 @@ VigiPay/
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Node.js / Python  
+- **Backend:** Python  
 - **LLM:** HyperCLOVA X Dash (or custom model)  
 - **Frontend:** React / Next.js  
 - **Database:** PostgreSQL / MongoDB  
-- **AI Modules:** OCR, ASR, intent analysis, multimodal embeddings  
+- **AI Modules:** OCR, ASR, multimodal embeddings from Clova Studio 
 
 ---
 
@@ -107,6 +107,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
 
 
