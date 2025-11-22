@@ -1,6 +1,10 @@
 # 🌐 VigiPay
 ### **AI-Powered Multimodal Banking Assistant with Real-Time Scam Detection**
 
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/)
+[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![React Version](https://img.shields.io/badge/react-18+-61DAFB.svg)](https://reactjs.org/)
+
 VigiPay is an intelligent banking platform that integrates **Scam Checking**, **AI Automation**, and **Multimodal Interaction** (text, voice, image) to deliver a safer and smarter online banking experience.  
 It combines **fraud detection models**, **agentic chatbot workflows**, and **multimodal analysis** to help users verify transactions, detect scam messages, and automate financial tasks.
 
@@ -98,36 +102,77 @@ VigiPay/
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Python  
-- **LLM:** HyperCLOVA X Dash (or custom model)  
-- **Frontend:** React / Next.js  
-- **Database:** PostgreSQL / MongoDB  
-- **AI Modules:** OCR, ASR, multimodal embeddings from Clova Studio 
+| Area      | Technology                                                                                                  |
+| :-------- | :---------------------------------------------------------------------------------------------------------- |
+| **Frontend** | React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Lucide React, React Router                               |
+| **Backend**  | Python 3.9+, FastAPI, SQLAlchemy, Uvicorn, Pydantic, python-jose (JWT)                                      |
+| **AI / ML**  | Naver Cloud Platform (HyperCLOVA X, OCR, ASR), Scikit-learn, Pandas, Milvus                                 |
+| **Database** | **Vector DB:** Milvus <br/> **Relational DB:** SQLite (Dev), PostgreSQL (Production)                         |
+| **Infra**    | Docker & Docker Compose (for running Milvus)                                                                |
+
 
 ---
 
-## 🔧 Installation
+## 🔧 Installation & Setup
 
-### 1. Clone the repository
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourname/VigiPay-LunchCubee.git
+git clone https://github.com/your-username/VigiPay.git
+cd VigiPay
 ```
-cd VigiPay-LunchCubee
-### 2. Setup backend
+
+### 2. Setup Milvus Vector Database
+Ensure you have Docker and Docker Compose installed.
+
+```bash
+cd docker
+docker-compose up -d
 ```
+This command starts the Milvus database required for the RAG system.
+
+### 3. Setup Backend
+```bash
 cd backend
-cd src
-python -m venv chatbotvenv
-. chatbotvenv/bin/activate
-pip install -r requirements.txt
-uvicorn hyperclovax:app --host 0.0.0.0 --port 6011
+
+# Create and activate a Python virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r src/requirements.txt
+
+# Create your .env file
+cp .env.example .env
 ```
-### 3. Setup frontend
+**Important:** Open the newly created `backend/.env` file and add your API keys for Naver Cloud and a `SECRET_KEY` for JWT.
+
+Now, run the backend server from the `src` directory:
+```bash
+cd src
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+The API documentation will be available at `http://localhost:8000/docs`.
+
+### 4. Setup Frontend
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
+
+# Create your local environment file
+cp .env.example .env.local
+```
+Ensure the `VITE_API_BASE_URL` in `frontend/.env.local` is set to `http://localhost:8000`.
+
+Finally, start the frontend development server:
+```bash
 npm run dev
 ```
+The application will be accessible at `http://localhost:5173`.
+
+---
+
 
 
 
