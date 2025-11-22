@@ -1,11 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { User } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext"; // Import the hook
 
 export const WelcomeBanner = () => {
   const { user } = useAuth();
-
+  const { t } = useLanguage();
   // Get user's display name
-  const displayName = user?.full_name || user?.username || "Quý khách";
+  const displayName = user?.full_name || user?.username || t('guest');
   
   // Get first letter for avatar fallback
   const avatarLetter = displayName.charAt(0).toUpperCase();
@@ -32,10 +33,10 @@ export const WelcomeBanner = () => {
       {/* Welcome Text */}
       <div>
         <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
-          Chào mừng, <span className="text-primary">{displayName}</span>
+          {t("welcomeBack")} <span className="text-primary">{displayName}</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Chúc bạn một ngày làm việc hiệu quả
+          {t("haveAGreatDay")}
         </p>
       </div>
     </div>

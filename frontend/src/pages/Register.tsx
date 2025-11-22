@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { Eye, EyeOff, CreditCard, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext"; // Import hook
 
 const Register = () => {
+  const { t } = useLanguage(); // Use hook
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -110,8 +112,8 @@ const Register = () => {
 
     if (!validateForm()) {
       toast({
-        title: "Validation Error",
-        description: "Please fix the errors in the form",
+        title: t('validationError'),
+        description: t('fixErrors'),
         variant: "destructive",
       });
       return;
@@ -128,8 +130,8 @@ const Register = () => {
       );
 
       toast({
-        title: "Registration Successful",
-        description: "Welcome to Naver Bank!",
+        title: t('regSuccess'),
+        description: t('welcomeMsg'),
       });
 
       // Redirect to home page
@@ -137,10 +139,10 @@ const Register = () => {
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      const errorMessage = error.message || "Registration failed. Please try again.";
+      const errorMessage = error.message || t('regFailed');
       
       toast({
-        title: "Registration Failed",
+        title: t('regFailed'),
         description: errorMessage,
         variant: "destructive",
       });
@@ -157,9 +159,9 @@ const Register = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-accent-green/20 mb-3 md:mb-4">
             <CreditCard className="w-7 h-7 md:w-8 md:h-8 text-accent-green" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Create Account</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t('createAccount')}</h1>
           <p className="text-sm md:text-base text-muted-foreground px-4">
-            Join Naver Bank for secure banking
+            {t('joinMessage')}
           </p>
         </div>
 
@@ -168,13 +170,13 @@ const Register = () => {
           {/* Username */}
           <div className="space-y-2">
             <Label htmlFor="username" className="text-sm md:text-base">
-              Username <span className="text-red-500">*</span>
+              {t('username')} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="username"
               name="username"
               type="text"
-              placeholder="Choose a username"
+              placeholder={t('chooseUsername')}
               value={formData.username}
               onChange={handleChange}
               className={errors.username ? "border-red-500" : ""}
@@ -191,13 +193,13 @@ const Register = () => {
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm md:text-base">
-              Email <span className="text-red-500">*</span>
+              {t('email')} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="your.email@example.com"
+              placeholder={t('enterEmail')}
               value={formData.email}
               onChange={handleChange}
               className={errors.email ? "border-red-500" : ""}
@@ -214,13 +216,13 @@ const Register = () => {
           {/* Full Name (Optional) */}
           <div className="space-y-2">
             <Label htmlFor="fullName" className="text-sm md:text-base">
-              Full Name <span className="text-muted-foreground text-xs">(Optional)</span>
+              {t('fullName')} <span className="text-muted-foreground text-xs">{t('optional')}</span>
             </Label>
             <Input
               id="fullName"
               name="fullName"
               type="text"
-              placeholder="Your full name"
+              placeholder={t('enterFullName')}
               value={formData.fullName}
               onChange={handleChange}
               disabled={isLoading}
@@ -230,14 +232,14 @@ const Register = () => {
           {/* Password */}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm md:text-base">
-              Password <span className="text-red-500">*</span>
+              {t('password')} <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
               <Input
                 id="password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Create a strong password"
+                placeholder={t('createPassword')}
                 value={formData.password}
                 onChange={handleChange}
                 className={errors.password ? "border-red-500 pr-10" : "pr-10"}
@@ -254,7 +256,7 @@ const Register = () => {
 
             {/* Password Requirements */}
             <div className="space-y-1 text-xs">
-              <p className="text-muted-foreground">Password must contain:</p>
+              <p className="text-muted-foreground">{t('passwordReqHeader')}</p>
               <div className="flex items-center gap-2">
                 {validations.minLength ? (
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -262,7 +264,7 @@ const Register = () => {
                   <XCircle className="w-4 h-4 text-muted-foreground" />
                 )}
                 <span className={validations.minLength ? "text-green-500" : "text-muted-foreground"}>
-                  At least 8 characters
+                  {t('reqMinChars')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -272,7 +274,7 @@ const Register = () => {
                   <XCircle className="w-4 h-4 text-muted-foreground" />
                 )}
                 <span className={validations.hasUpper ? "text-green-500" : "text-muted-foreground"}>
-                  One uppercase letter
+                  {t('reqUppercase')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -282,7 +284,7 @@ const Register = () => {
                   <XCircle className="w-4 h-4 text-muted-foreground" />
                 )}
                 <span className={validations.hasLower ? "text-green-500" : "text-muted-foreground"}>
-                  One lowercase letter
+                  {t('reqLowercase')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -292,7 +294,7 @@ const Register = () => {
                   <XCircle className="w-4 h-4 text-muted-foreground" />
                 )}
                 <span className={validations.hasNumber ? "text-green-500" : "text-muted-foreground"}>
-                  One number
+                  {t('reqNumber')}
                 </span>
               </div>
             </div>
@@ -308,14 +310,14 @@ const Register = () => {
           {/* Confirm Password */}
           <div className="space-y-2">
             <Label htmlFor="confirmPassword" className="text-sm md:text-base">
-              Confirm Password <span className="text-red-500">*</span>
+              {t('confirmPassword')} <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder="Re-enter your password"
+                placeholder={t('reEnterPassword')}
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 className={errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
@@ -346,18 +348,18 @@ const Register = () => {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Account...
+                {t('creatingAccount')}
               </>
             ) : (
-              "Create Account"
+              t('createAccountButton')
             )}
           </Button>
 
           {/* Login Link */}
           <div className="text-center text-sm">
-            <span className="text-muted-foreground">Already have an account? </span>
+            <span className="text-muted-foreground">{t('alreadyHaveAccount')} </span>
             <Link to="/login" className="text-accent-green hover:underline font-medium">
-              Login here
+              {t('loginHere')}
             </Link>
           </div>
         </form>

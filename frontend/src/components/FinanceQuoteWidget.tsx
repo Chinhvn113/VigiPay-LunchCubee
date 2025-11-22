@@ -10,25 +10,21 @@ const quotes = [
     author: "Benjamin Franklin"
   },
   {
-    quote: "The stock market is a device for transferring money from the impatient to the patient.",
-    author: "Warren Buffett"
-  },
-  {
     quote: "An investment in knowledge pays the best interest.",
     author: "Benjamin Franklin"
   },
   {
-    quote: "A penny saved is a penny earned.",
-    author: "Benjamin Franklin"
+      quote: "Never spend your money before you have it.",
+      author: "Thomas Jefferson"
   },
-    {
-        quote: "The individual investor should act consistently as an investor and not as a speculator.",
-        author: "Ben Graham"
-    },
-    {
-        quote: "Never spend your money before you have it.",
-        author: "Thomas Jefferson"
-    }
+  {
+      quote: "In investing, what is comfortable is rarely profitable.",
+      author: "Robert Arnott"
+  },
+  {
+      quote: "Be fearful when others are greedy, greedy only when others are fearful.",
+      author: "Warren Buffett"
+  }
 ];
 
 export const FinanceQuoteWidget = () => {

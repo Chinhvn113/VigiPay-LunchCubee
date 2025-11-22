@@ -35,17 +35,27 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useBankAccounts } from "@/hooks/useBankAccount";
-import * as savingsGoalsService from "@/services/savingsGoalsService";
-import type { SavingsGoal, UpdateGoalRequest } from "@/services/savingsGoalsService";
+import * as savingsGoalsService from "@/apis/savingsGoalsService";
+import type { SavingsGoal, UpdateGoalRequest } from "@/apis/savingsGoalsService";
 
 // --- Types ---
 interface Transaction {
   id: number;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   amount: number;
   description: string;
   transaction_date: string;
 }
+
+// Helper to determine if transaction is income
+const isIncomeTransaction = (type: string): boolean => {
+  return type === 'income' || type === 'transfer_in';
+};
+
+// Helper to get display amount (always positive for display)
+const getDisplayAmount = (amount: number): number => {
+  return Math.abs(amount);
+};
 
 // --- Mock Data & Helpers ---
 const fetchTransactions = async (): Promise<Transaction[]> => {
@@ -178,12 +188,12 @@ const FinancialManagement = () => {
 
   const handleSaveGoal = () => {
     if (!goalName || !targetAmount || !allocatedAmount) {
-      toast.error("Please fill in all required fields");
+      toast.error(t('fillAllFields'));
       return;
     }
 
     if (!selectedAccountId) {
-      toast.error("Please select an account first");
+      toast.error(t('selectAccountFirst'));
       return;
     }
 
@@ -191,7 +201,7 @@ const FinancialManagement = () => {
     const target = parseFloat(targetAmount);
 
     if (allocated < 0 || target < 0) {
-      toast.error("Amounts must be positive");
+      toast.error(t('positiveAmountReq'));
       return;
     }
 
@@ -219,7 +229,7 @@ const FinancialManagement = () => {
   };
 
   const handleDeleteGoal = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this goal?')) {
+    if (window.confirm(t('confirmDelete'))) {
       deleteGoalMutation.mutate(id);
     }
   };
@@ -228,8 +238,8 @@ const FinancialManagement = () => {
   const selectedAccount = accounts?.find(acc => acc.id === selectedAccountId);
 
   // --- Calculations ---
-  const totalIncome = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const totalExpense = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0) || 0;
+  const totalIncome = transactions?.filter(t => isIncomeTransaction(t.type)).reduce((sum, t) => sum + getDisplayAmount(t.amount), 0) || 0;
+  const totalExpense = transactions?.filter(t => !isIncomeTransaction(t.type)).reduce((sum, t) => sum + getDisplayAmount(t.amount), 0) || 0;
   const currentSavings = totalIncome - totalExpense;
   
   // --- Savings Goals Calculations - Use API Summary ---
@@ -243,7 +253,7 @@ const FinancialManagement = () => {
   const stats = [
     { title: t('income'), value: `${totalIncome.toLocaleString('vi-VN')}đ`, icon: ArrowUpRight, color: "text-green-500" },
     { title: t('expense'), value: `${totalExpense.toLocaleString('vi-VN')}đ`, icon: ArrowDownRight, color: "text-red-500" },
-    { title: t('savingsGoal'), value: `${currentSavings.toLocaleString('vi-VN')}đ`, icon: PiggyBank, color: "text-purple-500" },
+    { title: t('netBalance') || 'Net Balance', value: `${currentSavings.toLocaleString('vi-VN')}đ`, icon: PiggyBank, color: "text-purple-500" },
   ];
   
   const recentTransactions = transactions?.slice(0, 5) || [];
@@ -301,16 +311,16 @@ const FinancialManagement = () => {
                       className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${transaction.type === 'income' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                          {transaction.type === 'income' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                        <div className={`p-2 rounded-full ${isIncomeTransaction(transaction.type) ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                          {isIncomeTransaction(transaction.type) ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                         </div>
                         <div>
                           <p className="font-medium text-sm">{transaction.description}</p>
                           <p className="text-xs text-muted-foreground">{new Date(transaction.transaction_date).toLocaleDateString('vi-VN')}</p>
                         </div>
                       </div>
-                      <div className={`font-bold text-sm ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                        {transaction.type === 'income' ? '+' : '-'}{transaction.amount.toLocaleString('vi-VN')}đ
+                      <div className={`font-bold text-sm ${isIncomeTransaction(transaction.type) ? 'text-green-500' : 'text-red-500'}`}>
+                        {isIncomeTransaction(transaction.type) ? '+' : '-'}{getDisplayAmount(transaction.amount).toLocaleString('vi-VN')}đ
                       </div>
                     </div>
                   ))
@@ -326,7 +336,7 @@ const FinancialManagement = () => {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
                 <CardTitle>{t('savingsGoal')}</CardTitle>
-                <CardDescription>Track your savings targets</CardDescription>
+                <CardDescription>{t('trackSavings')}</CardDescription>
               </div>
               <Button 
                 size="sm" 
@@ -334,7 +344,7 @@ const FinancialManagement = () => {
                 className="gap-1"
                 disabled={!selectedAccountId}
               >
-                <Plus className="h-4 w-4" /> Add
+                <Plus className="h-4 w-4" /> {t('add')}
               </Button>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto space-y-4">
@@ -403,7 +413,7 @@ const FinancialManagement = () => {
                         <div>
                           <span className="text-sm font-medium block">{goal.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            Allocated: {goal.allocated_amount.toLocaleString('vi-VN')}đ / Target: {goal.target_amount.toLocaleString('vi-VN')}đ
+                            {t('allocated')}: {goal.allocated_amount.toLocaleString('vi-VN')}đ / {t('targetAmount')}: {goal.target_amount.toLocaleString('vi-VN')}đ
                           </span>
                         </div>
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 -top-1 md:relative md:top-auto md:right-auto bg-background md:bg-transparent p-1 rounded shadow md:shadow-none">
@@ -424,7 +434,7 @@ const FinancialManagement = () => {
                         />
                       </div>
                       <div className="text-right mt-1 hidden md:block">
-                         <span className="text-xs font-medium text-muted-foreground">{percentage}% Progress</span>
+                         <span className="text-xs font-medium text-muted-foreground">{percentage}% {t('progress')}</span>
                       </div>
                     </div>
                   );
@@ -433,9 +443,9 @@ const FinancialManagement = () => {
                 {!goalsLoading && accountGoals.length === 0 && (
                   <div className="text-center py-6 text-muted-foreground">
                     <PiggyBank className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">No savings goals yet.</p>
+                    <p className="text-sm">{t('noGoals')}</p>
                     <Button variant="link" size="sm" onClick={openAddDialog} disabled={!selectedAccountId}>
-                      Create your first goal
+                      {t('createFirstGoal')}
                     </Button>
                   </div>
                 )}
@@ -450,16 +460,16 @@ const FinancialManagement = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{editingGoal ? 'Edit Savings Goal' : 'Create Savings Goal'}</DialogTitle>
+            <DialogTitle>{editingGoal ? t('editGoal') : t('createGoal')}</DialogTitle>
             <DialogDescription>
-              Set a target and allocate funds from your account balance.
+              {t('setTargetDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {/* Goal Name */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                Name
+                {t('name')}
               </Label>
               <Input
                 id="name"
@@ -473,7 +483,7 @@ const FinancialManagement = () => {
             {/* Target Amount */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="target" className="text-right">
-                Target (đ)
+                {t('targetAmount')}
               </Label>
               <Input
                 id="target"
@@ -488,7 +498,7 @@ const FinancialManagement = () => {
             {/* Allocated Amount */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="allocated" className="text-right">
-                Allocate (đ)
+                {t('allocateAmount')}
               </Label>
               <div className="col-span-3 space-y-2">
                 <Input
@@ -500,7 +510,7 @@ const FinancialManagement = () => {
                 />
                 {selectedAccount && (
                   <div className="text-xs text-muted-foreground">
-                    Available: <span className="font-semibold text-green-600">
+                    {t('availableBalance')} <span className="font-semibold text-green-600">
                       {(() => {
                         const otherTotal = accountGoals
                           .filter(g => g.id !== editingGoal?.id)
@@ -511,7 +521,7 @@ const FinancialManagement = () => {
                     </span>
                     {allocatedAmount && parseFloat(allocatedAmount) > 0 && (
                       <>
-                        {' '} → After allocation: <span className={`font-semibold ${
+                        {' '} → {t('afterAllocation')} <span className={`font-semibold ${
                           (() => {
                             const otherTotal = accountGoals
                               .filter(g => g.id !== editingGoal?.id)
@@ -538,7 +548,7 @@ const FinancialManagement = () => {
             {/* Color Picker */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
-                Color
+                {t('color')}
               </Label>
               <div className="col-span-3 flex gap-2 flex-wrap">
                 {['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-yellow-500', 'bg-red-500', 'bg-indigo-500'].map(color => (
@@ -555,7 +565,7 @@ const FinancialManagement = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('cancel')}</Button>
             <Button 
               onClick={handleSaveGoal}
               disabled={createGoalMutation.isPending || updateGoalMutation.isPending}
@@ -563,7 +573,7 @@ const FinancialManagement = () => {
               {(createGoalMutation.isPending || updateGoalMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {editingGoal ? 'Update Goal' : 'Create Goal'}
+              {editingGoal ? t('updateGoal') : t('createGoal')}
             </Button>
           </DialogFooter>
         </DialogContent>

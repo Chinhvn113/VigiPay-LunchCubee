@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/useMobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -170,6 +170,8 @@ const Sidebar = React.forwardRef<
     );
   }
 
+
+
   return (
     <div
       ref={ref}
@@ -208,6 +210,18 @@ const Sidebar = React.forwardRef<
           data-sidebar="sidebar"
           className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
         >
+          {/* Logo section */}
+          <div className="flex items-center justify-center py-6">
+            {state === "collapsed" ? (
+              <img src="/logo.png" alt="Logo" className="h-10 w-10 mx-auto" />
+            ) : (
+              <div className="flex items-center gap-3 px-4">
+                <img src="/logo.png" alt="Logo" className="h-8 w-8" />
+                {/* Only one VigiPay header here, removed duplicate */}
+                <span className="text-xl font-bold text-primary">VigiPay</span>
+              </div>
+            )}
+          </div>
           {children}
         </div>
       </div>

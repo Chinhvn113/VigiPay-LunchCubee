@@ -4,7 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/useToast';
 import {
   getBankAccounts,
   getBankAccountById,
@@ -16,7 +16,7 @@ import {
   type CreateAccountRequest,
   type TransferRequest,
   type TransferTransaction,
-} from '@/services/bankService';
+} from '@/apis/bankService';
 
 // Query Keys
 export const bankQueryKeys = {

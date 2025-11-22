@@ -1,9 +1,11 @@
 import { Button } from "./ui/button";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export const CreditCardPromo = () => {
+  const { t } = useLanguage();
   return (
     <div className="glass-card rounded-2xl p-6 space-y-6">
-      <h3 className="text-xl font-semibold text-foreground">Thẻ ghi nợ/Thẻ tín dụng</h3>
+      <h3 className="text-xl font-semibold text-foreground">{t('creditDebitCard')}</h3>
       
       {/* Card Display */}
       <div className="relative glass-card rounded-xl p-6 bg-gradient-to-br from-slate-800 to-slate-900 border border-accent-green/30 overflow-hidden">
@@ -17,9 +19,8 @@ export const CreditCardPromo = () => {
           </div>
           
           <div className="space-y-2">
-            <p className="text-foreground font-medium">Miễn lãi 45 ngày,</p>
-            <p className="text-foreground font-medium">hoàn tiền chi tiêu</p>
-            <p className="text-foreground font-medium">lên đến 12%</p>
+            <p className="text-foreground font-medium">{t('interestFree45Days')}</p>
+            <p className="text-foreground font-medium">{t('cashbackUpTo12')}</p>
           </div>
         </div>
         
@@ -31,7 +32,7 @@ export const CreditCardPromo = () => {
       
       {/* CTA Button */}
       <Button className="w-full bg-accent-green hover:bg-accent-green/90 text-accent-green-foreground font-medium py-6 rounded-xl">
-        Khám phá ngay
+        {t('exploreNow')}
       </Button>
     </div>
   );

@@ -145,15 +145,15 @@ def predict(model, feature_data, feature_columns=None):
             processed_features[idx] = float(processed_features[idx]) / 25000
             print(f"Info: Converted feature at index {idx} to USD: {processed_features[idx]}")
     print(f"Info: Converted VND to USD by dividing currency fields by 25000")
-    clean_features = processed_features[:5]
-    # clean_features[0] = 731
-    clean_feature_columns = feature_columns[:5] 
+    # clean_features = processed_features[:5]
+    processed_features[0] = 6
+    # clean_feature_columns = feature_columns[:5] 
     # Create a DataFrame from the input list
-    input_df = pd.DataFrame([clean_features], columns=clean_feature_columns)
+    input_df = pd.DataFrame([processed_features], columns=feature_columns)
 
     # Make the prediction
     prediction = model.predict(input_df)[0]
-    
+    conf_threshold = 0.2
     # Get probability from predict_proba
     try:
         probabilities = model.predict_proba(input_df)[0]
@@ -162,7 +162,8 @@ def predict(model, feature_data, feature_columns=None):
     except Exception as e:
         print(f"Warning: Could not get probability: {e}")
         fraud_probability = 0.0
-
+    if fraud_probability >= conf_threshold:
+        prediction = 1  # Override prediction to fraud if above threshold
     # Return both prediction and probability
     return {
         "isFraud": int(prediction),

@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast as sonnerToast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useBankAccounts } from "@/hooks/useBankAccount";
-import { calculateTransferFee } from "@/services/bankService";
+import { calculateTransferFee } from "@/apis/bankService";
 import {
   Select,
   SelectContent,
@@ -69,11 +69,32 @@ const SafetyChecking = () => {
       setVoiceTranscript(data.transcript);
     }
 
-    if (data.intent === 'transfer_money' && data.entities) {
+    // Check intent
+    if (data.intent === 'transfer_money') {
       sonnerToast.success("Voice command recognized!");
-      setRecipientAccount(data.entities.account_number || "");
-      setAmount(data.entities.amount ? formatCurrency(String(data.entities.amount)) : "");
-      setReason(data.entities.description || "");
+
+      // 1. Extract Account Number
+      // The API returns 'recipient_account', code previously looked for 'entities.account_number'
+      const accNum = data.recipient_account || data.entities?.account_number;
+      
+      // Only fill if it's found and valid (ignoring "UNKNOWN_ACCOUNT" placeholder)
+      if (accNum && accNum !== "UNKNOWN_ACCOUNT") {
+        setRecipientAccount(accNum);
+      }
+
+      // 2. Extract Amount
+      // The API returns 'amount' at the top level
+      const valAmount = data.amount || data.entities?.amount;
+      if (valAmount) {
+        setAmount(formatCurrency(String(valAmount)));
+      }
+
+      // 3. Extract Description
+      const desc = data.description || data.entities?.description;
+      if (desc) {
+        setReason(desc);
+      }
+      
     } else {
       sonnerToast.error("Could not recognize transfer details from your command.");
     }

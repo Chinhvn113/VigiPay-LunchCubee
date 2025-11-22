@@ -1,24 +1,27 @@
 import { Users, UserCog } from "lucide-react";
-
-const services = [
-  {
-    icon: Users,
-    label: "VCB Family",
-    badge: "mới",
-  },
-  {
-    icon: UserCog,
-    label: "Quản lý nhóm",
-    badge: "mới",
-  },
-];
+import { useLanguage } from "@/i18n/LanguageContext";
 
 export const ServiceCards = () => {
+  const { t } = useLanguage();
+
+  const services = [
+    {
+      icon: Users,
+      label: t('vcbFamily'),
+      badge: t('newBadge'),
+    },
+    {
+      icon: UserCog,
+      label: t('groupManagement'),
+      badge: t('newBadge'),
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-foreground">Mới nhất trên VCB Digibank</h3>
-        <button className="text-sm text-primary hover:underline">Xem tất cả ưu đãi →</button>
+        <h3 className="text-xl font-semibold text-foreground">{t('latestOnDigibank')}</h3>
+        <button className="text-sm text-primary hover:underline">{t('viewAllOffers')} →</button>
       </div>
       
       <div className="grid grid-cols-2 gap-4">

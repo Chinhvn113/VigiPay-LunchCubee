@@ -8,7 +8,7 @@ import httpx
 import asyncio
 
 # Embedding endpoint configuration
-EMBEDDING_API_BASE_URL = os.getenv("EMBEDDING_API_URL", "http://192.168.20.156:6011")
+EMBEDDING_API_BASE_URL = os.getenv("EMBEDDING_API_URL", "http://localhost:6011")
 EMBEDDING_ENDPOINT = f"{EMBEDDING_API_BASE_URL}/api/embeddings"
 
 
@@ -325,11 +325,11 @@ class MilvusRAGDB:
 # Example Usage:
 async def main():
     # 1. Initialize the database client
-    db = MilvusRAGDB(collection_name="scam_check_db", host = "192.168.20.156", port=6030)
+    db = MilvusRAGDB(collection_name="scam_check_db", host = "localhost", port=6030)
     
     # Optional: Clean up previous collection
     db.delete_collection()
-    db = MilvusRAGDB(collection_name="scam_check_db", host = "192.168.20.156", port=6030) # Re-initialize after deletion
+    db = MilvusRAGDB(collection_name="scam_check_db", host = "localhost", port=6030) # Re-initialize after deletion
     # 3. Build the database from the 'data' folder
     await db.build(folder_path="Data_Luadao")
 

@@ -6,9 +6,10 @@ import { ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useExecuteTransfer } from "@/hooks/useBankAccount";
-import { formatCurrency } from "@/services/bankService";
-import { useEffect } from "react";
+import { formatCurrency, executeInternalTransfer } from "@/apis/bankService";
+import { useEffect, useState } from "react";
 import { TransactionProgressHeader } from "@/components/TransactionProgressHeader";
+import { toast } from "sonner";
 
 interface ConfirmationData {
   sender_account_id: number;
@@ -48,37 +49,78 @@ const TransactionConfirmation = () => {
   // Calculate remaining balance locally to ensure it assumes 0 fee
   const finalRemainingBalance = confirmationData.sender_balance - confirmationData.amount;
 
-  const handleConfirm = () => {
-    const transferData: any = {
-      sender_account_id: confirmationData.sender_account_id,
-      receiver_account_number: confirmationData.receiver_account_number,
-      receiver_bank: confirmationData.receiver_bank,
-      receiver_name: confirmationData.receiver_name,
-      amount: confirmationData.amount,
-      // Removed fee_payer as there is no fee
-    };
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleConfirm = async () => {
+    // Check if this is VigiPay internal transfer
+    const isInternalTransfer = confirmationData.receiver_bank === 'vigipay';
     
-    // Only add description if exists
-    if (confirmationData.description) {
-      transferData.description = confirmationData.description;
-    }
-    
-    executeTransfer.mutate(transferData, {
-      onSuccess: (data) => {
+    if (isInternalTransfer) {
+      // Handle VigiPay internal transfer (REAL MONEY)
+      setIsProcessing(true);
+      try {
+        const result = await executeInternalTransfer({
+          sender_account_id: confirmationData.sender_account_id,
+          receiver_account_number: confirmationData.receiver_account_number,
+          amount: confirmationData.amount,
+          description: confirmationData.description,
+          fee_payer: 'sender',
+        });
+        
+        toast.success(result.message || 'Transfer completed successfully!');
+        
         navigate("/transaction-success", {
           state: {
-            transferId: data.id,
-            amount: data.amount,
-            fee: 0, // Explicitly setting fee to 0 for success screen
-            recipientAccount: data.receiver_account_number,
-            recipientBank: data.receiver_bank,
-            recipientName: data.receiver_name,
-            description: data.description,
-            timestamp: data.created_at,
+            transferId: result.transfer_id,
+            amount: result.amount_sent,
+            fee: result.fee || 0,
+            recipientAccount: confirmationData.receiver_account_number,
+            recipientBank: 'VigiPay',
+            recipientName: result.receiver_name,
+            description: confirmationData.description,
+            timestamp: new Date().toISOString(),
+            isInternal: true,
           }
         });
+      } catch (error: any) {
+        console.error('Internal transfer error:', error);
+        const errorMsg = error.response?.data?.detail || error.message || 'Transfer failed';
+        toast.error(errorMsg);
+      } finally {
+        setIsProcessing(false);
       }
-    });
+    } else {
+      // Handle external/mock transfer
+      const transferData: any = {
+        sender_account_id: confirmationData.sender_account_id,
+        receiver_account_number: confirmationData.receiver_account_number,
+        receiver_bank: confirmationData.receiver_bank,
+        receiver_name: confirmationData.receiver_name,
+        amount: confirmationData.amount,
+      };
+      
+      if (confirmationData.description) {
+        transferData.description = confirmationData.description;
+      }
+      
+      executeTransfer.mutate(transferData, {
+        onSuccess: (data) => {
+          navigate("/transaction-success", {
+            state: {
+              transferId: data.id,
+              amount: data.amount,
+              fee: 0,
+              recipientAccount: data.receiver_account_number,
+              recipientBank: data.receiver_bank,
+              recipientName: data.receiver_name,
+              description: data.description,
+              timestamp: data.created_at,
+              isInternal: false,
+            }
+          });
+        }
+      });
+    }
   };
 
   const handleEdit = () => {
@@ -251,9 +293,9 @@ const TransactionConfirmation = () => {
           <Button 
             className="flex-1 bg-accent-green hover:bg-accent-green/90 text-background h-11 md:h-12 transition-all duration-300 hover:scale-[1.02]"
             onClick={handleConfirm}
-            disabled={executeTransfer.isPending}
+            disabled={executeTransfer.isPending || isProcessing}
           >
-            {executeTransfer.isPending ? (
+            {(executeTransfer.isPending || isProcessing) ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {t('processing') || 'Processing...'}

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useBankAccounts } from "@/hooks/useBankAccount";
-import { formatCurrency } from "@/services/bankService";
+import { formatCurrency } from "@/apis/bankService";
 
 export const AccountCard = () => {
   const [showBalance, setShowBalance] = useState(false);

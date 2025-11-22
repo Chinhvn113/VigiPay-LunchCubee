@@ -10,7 +10,7 @@ from typing import List, Optional
 from openai import OpenAI
 from dotenv import load_dotenv
 from rag_db import MilvusRAGDB
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Float, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
@@ -68,7 +68,7 @@ def get_fraud_detection_model():
     """Returns the cached fraud detection model, loading it if necessary."""
     global fraud_detection_model
     if fraud_detection_model is None:
-        fraud_detection_model = load_ml_model('checkpoints/random_forest_org.pkl')
+        fraud_detection_model = load_ml_model('checkpoints/random_forest.pkl')
     return fraud_detection_model
 
 def get_feature_columns():
@@ -127,10 +127,19 @@ security = HTTPBearer()
 security_optional = HTTPBearer(auto_error=False)  # Optional auth - doesn't raise error if missing
 
 # Database setup
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
-)
+# PostgreSQL configuration (production-ready with connection pooling)
+engine_kwargs = {
+    "pool_pre_ping": True,  # Verify connections before using
+    "pool_size": 10,  # Connection pool size
+    "max_overflow": 20,  # Max connections beyond pool_size
+    "echo": False  # Set True for SQL query logging
+}
+
+# SQLite specific config (legacy)
+if "sqlite" in DATABASE_URL:
+    engine_kwargs = {"connect_args": {"check_same_thread": False}}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -141,7 +150,7 @@ app = FastAPI(
 )
 
 # --- Milvus RAG Database Initialization ---
-milvus_host = os.getenv("MILVUS_HOST", "192.168.20.156")
+milvus_host = os.getenv("MILVUS_HOST", "10.0.1.8")
 milvus_port = os.getenv("MILVUS_PORT", "6030")
 milvus_collection_name = os.getenv("MILVUS_COLLECTION_NAME", "scam_check_db")
 
@@ -198,6 +207,7 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
+    fraud_checking = Column(Boolean, default=False, nullable=False)  # Flag for fraud demo account
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -612,6 +622,7 @@ class ScamCheckResponse(BaseModel):
 class SafetyCheckRequest(BaseModel):
     sender_account_id: int
     amount: float
+    receiver_account_number: Optional[str] = None  # Optional: receiver account number to check destination user's fraud status
 
 class SafetyCheckResponse(BaseModel):
     is_safe: bool
@@ -686,6 +697,22 @@ class TransferRequest(BaseModel):
     receiver_name: str = Field(..., min_length=1, max_length=100, description="Receiver's name (required)")
     amount: int = Field(..., gt=0, description="Transfer amount in VND (must be positive)")
     description: Optional[str] = Field(None, max_length=255, description="Transfer description (optional)")
+    fee_payer: str = Field(default="sender", description="Who pays the fee: sender or receiver")
+    
+    @field_validator('fee_payer')
+    @classmethod
+    def validate_fee_payer(cls, v: str) -> str:
+        if v not in ['sender', 'receiver']:
+            raise ValueError('fee_payer must be either "sender" or "receiver"')
+        return v
+
+
+class InternalTransferRequest(BaseModel):
+    """Request model for internal VigiPay transfers"""
+    sender_account_id: int = Field(..., description="ID of sender's bank account")
+    receiver_account_number: str = Field(..., min_length=10, max_length=10, description="Receiver's account number (10 digits)")
+    amount: int = Field(..., gt=0, description="Transfer amount in VND (must be positive)")
+    description: Optional[str] = Field(default="Internal transfer", max_length=255, description="Transfer description")
     fee_payer: str = Field(default="sender", description="Who pays the fee: sender or receiver")
     
     @field_validator('fee_payer')
@@ -1418,6 +1445,19 @@ async def safety_check_endpoint(
         if feature_columns_list is None:
             raise HTTPException(status_code=503, detail="Feature columns loading failed")
         
+        # Check if destination account's user is flagged for fraud checking
+        is_fraud_flagged = False
+        if request.receiver_account_number:
+            print(f"Checking fraud status for receiver account: {request.receiver_account_number}")
+            receiver_account = db.query(BankAccount).filter(
+                BankAccount.account_number == request.receiver_account_number
+            ).first()
+            
+            if receiver_account:
+                receiver_user = db.query(User).filter(User.id == receiver_account.user_id).first()
+                if receiver_user:
+                    is_fraud_flagged = receiver_user.fraud_checking
+        
         # Prepare features for ML model prediction
         features = {
             "step": 1,
@@ -1426,7 +1466,8 @@ async def safety_check_endpoint(
             "oldbalanceOrg": float(sender_account.balance),
             "newbalanceOrig": max(0.0, float(sender_account.balance) - float(request.amount)),
             "oldbalanceDest": 0.0,
-            "newbalanceDest": float(request.amount)
+            "newbalanceDest": float(request.amount),
+            "isfraud": 1 if is_fraud_flagged else 0  # Pass isfraud flag: 1 if destination user is fraud flagged
         }
         
         result = predict(model, features, feature_columns=feature_columns_list)
@@ -1435,9 +1476,11 @@ async def safety_check_endpoint(
         is_safe = result['isFraud'] == 0
         probability = result['probability'] or 0.0
         
-        message = f"Transaction {'is safe' if is_safe else 'may be fraudulent'} (confidence: {probability:.2%})"
+        # Add note if destination account is fraud flagged
+        fraud_flag_note = " (⚠️ Destination account flagged for fraud checking)" if is_fraud_flagged else ""
+        message = f"Transaction {'is safe' if is_safe else 'may be fraudulent'} (confidence: {probability:.2%}){fraud_flag_note}"
         
-        print(f"✅ Safety check for account {request.sender_account_id}: is_safe={is_safe}, probability={probability:.4f}")
+        print(f"✅ Safety check for account {request.sender_account_id} → {request.receiver_account_number}: is_safe={is_safe}, probability={probability:.4f}, dest_isfraud={1 if is_fraud_flagged else 0}")
         
         return SafetyCheckResponse(
             is_safe=is_safe,
@@ -1697,6 +1740,222 @@ async def get_transactions(
     transactions = db.query(Transaction).filter(Transaction.user_id == current_user.id).order_by(Transaction.transaction_date.desc()).all()
     return transactions
 
+
+@app.get("/api/recent-recipients")
+async def get_recent_recipients(
+    limit: int = 5,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get recent transfer recipients for the current user
+    Returns unique recipients ordered by most recent transfer
+    """
+    # Get user's bank accounts
+    user_accounts = db.query(BankAccount).filter(
+        BankAccount.user_id == current_user.id
+    ).all()
+    
+    if not user_accounts:
+        return []
+    
+    account_ids = [acc.id for acc in user_accounts]
+    
+    # Get recent transfers from user's accounts
+    # Use subquery to get unique recipients with their most recent transfer
+    subquery = db.query(
+        TransferTransaction.receiver_account_number,
+        TransferTransaction.receiver_name,
+        TransferTransaction.receiver_bank,
+        func.max(TransferTransaction.created_at).label('last_transfer_date')
+    ).filter(
+        TransferTransaction.sender_account_id.in_(account_ids),
+        TransferTransaction.status == 'completed'
+    ).group_by(
+        TransferTransaction.receiver_account_number,
+        TransferTransaction.receiver_name,
+        TransferTransaction.receiver_bank
+    ).order_by(
+        func.max(TransferTransaction.created_at).desc()
+    ).limit(limit).subquery()
+    
+    # Get full transfer details
+    recent_recipients = db.query(
+        subquery.c.receiver_account_number,
+        subquery.c.receiver_name,
+        subquery.c.receiver_bank,
+        subquery.c.last_transfer_date
+    ).all()
+    
+    return [
+        {
+            "account_number": r.receiver_account_number,
+            "account_name": r.receiver_name,
+            "bank": r.receiver_bank,
+            "last_transfer": r.last_transfer_date.isoformat() if r.last_transfer_date else None
+        }
+        for r in recent_recipients
+    ]
+
+
+@app.post("/api/transfer/internal", status_code=status.HTTP_201_CREATED)
+async def internal_transfer(
+    transfer_data: InternalTransferRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Process internal transfer between VigiPay accounts (REAL MONEY TRANSFER)
+    
+    This endpoint performs actual money transfer:
+    1. Validates sender has sufficient balance
+    2. Looks up receiver account in database
+    3. Deducts money from sender (including fee if sender pays)
+    4. Adds money to receiver (minus fee if receiver pays)
+    5. Creates transfer record and transaction history for both parties
+    6. Uses database transaction for atomicity (all or nothing)
+    
+    Args:
+        transfer_data: Transfer request with sender_account_id, receiver_account_number, amount, etc.
+        
+    Returns:
+        Transfer confirmation with transaction IDs
+        
+    Raises:
+        403: Sender account doesn't belong to current user
+        404: Receiver account not found
+        400: Insufficient balance or invalid data
+    """
+    try:
+        # 1. Validate sender account belongs to current user
+        sender_account = db.query(BankAccount).filter(
+            BankAccount.id == transfer_data.sender_account_id,
+            BankAccount.user_id == current_user.id,
+            BankAccount.is_active == True
+        ).first()
+        
+        if not sender_account:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sender account not found or unauthorized"
+            )
+        
+        # 2. Look up receiver account by account number
+        receiver_account = db.query(BankAccount).filter(
+            BankAccount.account_number == transfer_data.receiver_account_number,
+            BankAccount.is_active == True
+        ).first()
+        
+        if not receiver_account:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Receiver account not found. Please check the account number."
+            )
+        
+        # 3. Prevent self-transfer
+        if sender_account.id == receiver_account.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot transfer to the same account"
+            )
+        
+        # 4. Calculate fee
+        fee = calculate_transfer_fee(transfer_data.amount)
+        
+        # 5. Check sufficient balance
+        total_deduction = transfer_data.amount + fee if transfer_data.fee_payer == "sender" else transfer_data.amount
+        if sender_account.balance < total_deduction:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient balance. Required: {total_deduction:,} VND, Available: {sender_account.balance:,} VND"
+            )
+        
+        # 6. Get receiver user info
+        receiver_user = db.query(User).filter(User.id == receiver_account.user_id).first()
+        receiver_name = receiver_user.full_name if receiver_user.full_name else receiver_user.username
+        
+        # 7. BEGIN ATOMIC TRANSACTION
+        # Update balances
+        sender_account.balance -= total_deduction
+        
+        amount_to_receiver = transfer_data.amount - fee if transfer_data.fee_payer == "receiver" else transfer_data.amount
+        receiver_account.balance += amount_to_receiver
+        
+        # 8. Create TransferTransaction record
+        transfer_transaction = TransferTransaction(
+            sender_account_id=sender_account.id,
+            receiver_account_number=receiver_account.account_number,
+            receiver_bank="vigipay",  # Internal transfer
+            receiver_name=receiver_name,
+            amount=transfer_data.amount,
+            fee=fee,
+            fee_payer=transfer_data.fee_payer,
+            description=transfer_data.description or "Internal transfer",
+            status="completed",
+            transaction_date=datetime.now(timezone.utc)
+        )
+        db.add(transfer_transaction)
+        db.flush()  # Get transfer_transaction.id
+        
+        # 9. Create Transaction records for both sender and receiver
+        # Sender transaction (outgoing)
+        sender_transaction = Transaction(
+            user_id=current_user.id,
+            account_id=sender_account.id,
+            transfer_id=transfer_transaction.id,
+            type="transfer_out",
+            amount=-total_deduction,  # Negative for outgoing
+            description=f"Transfer to {receiver_name} - {transfer_data.description}",
+            transaction_date=datetime.now(timezone.utc)
+        )
+        db.add(sender_transaction)
+        
+        # Receiver transaction (incoming)
+        receiver_transaction = Transaction(
+            user_id=receiver_account.user_id,
+            account_id=receiver_account.id,
+            transfer_id=transfer_transaction.id,
+            type="transfer_in",
+            amount=amount_to_receiver,  # Positive for incoming
+            description=f"Received from {current_user.full_name or current_user.username} - {transfer_data.description}",
+            transaction_date=datetime.now(timezone.utc)
+        )
+        db.add(receiver_transaction)
+        
+        # 10. COMMIT all changes atomically
+        db.commit()
+        db.refresh(transfer_transaction)
+        db.refresh(sender_account)
+        db.refresh(receiver_account)
+        
+        return {
+            "success": True,
+            "message": "Transfer completed successfully",
+            "transfer_id": transfer_transaction.id,
+            "sender_transaction_id": sender_transaction.id,
+            "receiver_transaction_id": receiver_transaction.id,
+            "amount_sent": total_deduction,
+            "amount_received": amount_to_receiver,
+            "fee": fee,
+            "sender_new_balance": sender_account.balance,
+            "receiver_new_balance": receiver_account.balance,
+            "receiver_name": receiver_name
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Internal transfer error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transfer failed: {str(e)}"
+        )
+
+
+# ... imports ...
+
 @app.post("/api/voice-command")
 async def voice_command_endpoint(
     # Make audio optional, allow text as Form data
@@ -1709,33 +1968,29 @@ async def voice_command_endpoint(
     
     transcribed_text = ""
 
-    # 1. Check for direct Text input (from Frontend Web Speech API)
+    # 1. Input Processing
     if text:
-        print(f"📝 Received text directly: '{text}'")
         transcribed_text = text
-    
-    # 2. Fallback to Audio (if text is empty/missing)
     elif audio:
-        print("🔈 Processing audio file via Clova Speech...")
+        # print("🔈 Processing audio file via Clova Speech...")
         audio_data = await audio.read()
         try:
             speech_result = await call_clova_speech_api(audio_data)
             transcribed_text = speech_result.get("text")
         except Exception as e:
             raise HTTPException(status_code=500, detail="Error processing speech.")
-    
     else:
         raise HTTPException(status_code=400, detail="No voice or text data received.")
 
     if not transcribed_text:
          raise HTTPException(status_code=400, detail="Could not recognize voice.")
 
-    # 2. Intent Detection (NLU)
+    # 2. Load Prompt from File (Original Method)
     try:
         prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "voice_nlu.txt")
         if not os.path.exists(prompt_path):
-            # Fallback simple system prompt if file missing
-            nlu_system_prompt = "You are a banking assistant. Extract intent (transfer_money, phone_topup) and entities (amount, account_number) to JSON."
+            # Fallback only if file is missing
+            nlu_system_prompt = "You are a banking assistant. Return JSON with intent (transfer_money, phone_topup, check_scam) and entities."
         else:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 nlu_system_prompt = f.read()
@@ -1745,6 +2000,7 @@ async def voice_command_endpoint(
             {"role": "user", "content": [{"type": "text", "text": transcribed_text}]}
         ]
 
+        # Call AI
         response = client.chat.completions.create(
             model="HCX-005",
             messages=messages,
@@ -1754,14 +2010,7 @@ async def voice_command_endpoint(
         )
         ai_response_content = response.choices[0].message.content.strip()
         
-        # --- ADD DEBUG LOG HERE ---
-        print(f"--- DEBUG: VOICE API (FORM FILL) RAW RESPONSE START ---")
-        print(f"USER INPUT (Transcription): {transcribed_text}")
-        print(f"RAW AI RESPONSE: {ai_response_content}")
-        print(f"--- DEBUG: VOICE API (FORM FILL) RAW RESPONSE END ---")
-        # --------------------------
-        
-        # Extract JSON
+        # Parse JSON
         cleaned_json_str = ai_response_content
         if "```json" in ai_response_content:
             cleaned_json_str = ai_response_content.split("```json")[1].split("```")[0]
@@ -1774,27 +2023,42 @@ async def voice_command_endpoint(
         try:
             parsed_json = json.loads(cleaned_json_str)
         except:
-            # If NLU fails to produce JSON, treat as general chat
-            parsed_json = {"intent": "unknown"}
+            parsed_json = {"intent": "general_chat"}
 
-        # 3. Logic Branching
-        # Always inject the transcript so frontend can show it
+        # Inject transcript
         parsed_json["transcript"] = transcribed_text
 
-        # Check if it's a supported banking intent
-        valid_intents = ['transfer_money', 'phone_topup']
+        # 3. Handle Intents
+        intent = parsed_json.get("intent")
         
-        if parsed_json.get("intent") in valid_intents:
-            # Return the structured data for the frontend to handle
-            return parsed_json
-        else:
-            # 4. General Chat Fallback
-            # If the user said "Hello" or "What is the exchange rate?", NLU might return unknown or no entities.
-            # We ask the Chat model to answer directly.
-            print("💬 Intent not financial, switching to General Chat...")
+        # --- NEW LOGIC FOR SCAM CHECK ---
+        if intent == "check_scam":
+            print(f"🕵️ Voice Scam Check detected. Content: {parsed_json.get('content', '')}")
             
+            # Determine input for scam check (use extracted content or full transcript)
+            scam_input = parsed_json.get("content") or transcribed_text
+            
+            # Call the existing logic directly
+            scam_request = ScamCheckRequest(input=scam_input)
+            scam_result = await scam_check_endpoint(scam_request)
+            
+            # Add result to response
+            parsed_json["scam_check_result"] = {
+                "success": scam_result.success,
+                "verdict": scam_result.verdict,
+                "error": scam_result.error
+            }
+            return parsed_json
+        # --------------------------------
+        
+        elif intent in ['transfer_money', 'phone_topup']:
+            return parsed_json
+            
+        else:
+            # General Chat Fallback
+            print("💬 General Chat fallback...")
             chat_messages = [
-                {"role": "system", "content": [{"type": "text", "text": "You are Sentinel, a helpful AI banking assistant. Keep answers concise and helpful."}]},
+                {"role": "system", "content": [{"type": "text", "text": "You are Sentinel, a helpful AI banking assistant."}]},
                 {"role": "user", "content": [{"type": "text", "text": transcribed_text}]}
             ]
             
@@ -1814,11 +2078,10 @@ async def voice_command_endpoint(
             }
 
     except Exception as e:
-        print(f"❌ NLU/Chat Error: {e}")
-        # Return a safe fallback so frontend doesn't crash
+        print(f"❌ Voice API Error: {e}")
         return {
             "intent": "general_chat",
-            "transcript": transcribed_text if 'transcribed_text' in locals() else "",
+            "transcript": transcribed_text,
             "reply": "I heard you, but I encountered an error processing the request."
         }
 
@@ -2135,7 +2398,8 @@ async def refresh_access_token(
         )
     
     # Check expiration
-    if refresh_token_obj.expires_at < datetime.utcnow():
+    now = datetime.now(timezone.utc) if refresh_token_obj.expires_at.tzinfo else datetime.utcnow()
+    if refresh_token_obj.expires_at < now:
         db.delete(refresh_token_obj)
         db.commit()
         raise HTTPException(
@@ -2274,6 +2538,48 @@ async def get_account_by_id(
         )
     
     return account
+
+
+@app.get("/api/bank-accounts/lookup/{account_number}")
+async def lookup_account_by_number(
+    account_number: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Lookup bank account by account number and return owner information
+    
+    This endpoint is public (no authentication required) to allow users
+    to verify recipient account before making a transfer.
+    
+    Args:
+        account_number: The bank account number to lookup
+        
+    Returns:
+        Account owner information if found
+        
+    Raises:
+        404: Account not found
+    """
+    account = db.query(BankAccount).filter(
+        BankAccount.account_number == account_number,
+        BankAccount.is_active == True
+    ).first()
+    
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found. Please check the account number."
+        )
+    
+    # Get user information
+    user = db.query(User).filter(User.id == account.user_id).first()
+    
+    return {
+        "exists": True,
+        "account_number": account.account_number,
+        "account_holder_name": user.full_name if user.full_name else user.username,
+        "account_type": account.account_type
+    }
 
 
 @app.post("/api/accounts", response_model=BankAccountResponse, status_code=status.HTTP_201_CREATED)

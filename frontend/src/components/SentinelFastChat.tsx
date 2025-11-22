@@ -5,6 +5,7 @@ import { Sparkles, ShieldCheck, X, ShieldAlert, CheckCircle2, MessageCircle, Ima
 import { useState, useCallback, ChangeEvent, DragEvent, KeyboardEvent, useRef, ClipboardEvent } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 type AnalysisResult = {
   category: 'BILL' | 'SCAM_CHECK' | 'CHAT' | 'ERROR';
@@ -18,6 +19,7 @@ type AnalysisResult = {
 };
 
 export const SentinelFastChat = () => {
+  const { t } = useLanguage();
   const [inputText, setInputText] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export const SentinelFastChat = () => {
   // --- LOGIC XỬ LÝ (GIỮ NGUYÊN) ---
   const validateAndSetFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast.error("Please upload an image file (e.g., JPG, PNG).");
+      toast.error(t('uploadImageError'));
       return;
     }
     setImageFile(file);
@@ -51,7 +53,7 @@ export const SentinelFastChat = () => {
         if (file) {
           e.preventDefault();
           validateAndSetFile(file);
-          toast.info("Image pasted from clipboard");
+          toast.info(t('imagePasted'));
           return;
         }
       }
@@ -81,7 +83,7 @@ export const SentinelFastChat = () => {
 
   const handleAnalyze = async () => {
     if (!inputText.trim() && !imageFile) {
-        toast.error("Please enter text or upload an image to analyze.");
+        toast.error(t('enterTextOrImageError'));
         return;
     }
     setIsLoading(true);
@@ -101,18 +103,18 @@ export const SentinelFastChat = () => {
           body: formData,
         });
 
-        if (!response.ok) throw new Error("Analysis failed.");
+        if (!response.ok) throw new Error(t('analysisFailed'));
 
         const data: AnalysisResult = await response.json();
         setResult(data);
 
         if (data.category === 'BILL') {
-            toast.success("Transaction saved successfully!");
+            toast.success(t('transactionSaved'));
             await queryClient.invalidateQueries({ queryKey: ['transactions'] });
             handleRemoveImage();
             setInputText("");
         } else if (data.category === 'SCAM_CHECK') {
-            toast.success("Analysis complete.");
+            toast.success(t('analysisComplete'));
         }
 
     } catch (error: any) {
@@ -139,7 +141,7 @@ export const SentinelFastChat = () => {
             <div className="mt-4 rounded-lg border bg-green-500/10 border-green-500/30 p-4 animate-fade-in">
                 <div className="flex flex-col items-center text-center gap-2 text-green-500">
                     <CheckCircle2 className="h-10 w-10" />
-                    <h3 className="text-xl font-bold">Transaction Saved</h3>
+                    <h3 className="text-xl font-bold">{t('transactionSaved')}</h3>
                     <p className="text-foreground font-mono text-lg font-bold">-{result.amount?.toLocaleString()} VND</p>
                     <p className="text-sm text-muted-foreground">{result.description}</p>
                 </div>
@@ -155,7 +157,7 @@ export const SentinelFastChat = () => {
                          <MessageCircle className="h-5 w-5 text-blue-500" />
                     </div>
                     <div className="space-y-1">
-                        <p className="text-sm font-semibold text-blue-500">Sentinel</p>
+                        <p className="text-sm font-semibold text-blue-500">{t('sentinel')}</p>
                         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{result.reply}</p>
                     </div>
                 </div>
@@ -184,17 +186,17 @@ export const SentinelFastChat = () => {
                 <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
                     <Icon className={`h-12 w-12 ${titleColor}`} />
                     <h3 className={`text-2xl font-bold ${titleColor}`}>
-                        {isScam ? "This is a scam." : (isSafe ? "This appears safe." : "Caution Advised.")}
+                        {isScam ? t('thisIsAScam') : (isSafe ? t('thisAppearsSafe') : t('cautionAdvised'))}
                     </h3>
                     <p className="text-sm text-gray-300 max-w-md leading-relaxed">
                         {isScam 
-                         ? "Do not click on any suspicious links or enter your personal information. Verify the authenticity of the message directly through official channels."
-                         : "Always verify the source before proceeding with any financial transactions, even if the content looks legitimate."
+                         ? t('scamWarning')
+                         : t('safeMessage')
                         }
                     </p>
                 </div>
                 <div className="border-t border-white/5 bg-black/20 p-5 text-left">
-                    <h4 className="font-bold text-white/90 mb-2 text-sm">CLOVA Studio's Explanation:</h4>
+                    <h4 className="font-bold text-white/90 mb-2 text-sm">{t('clovaExplanation')}</h4>
                     <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{explanationText}</p>
                 </div>
             </div>
@@ -210,12 +212,12 @@ export const SentinelFastChat = () => {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
-          <CardTitle>Sentinel AI Check</CardTitle>
+          <CardTitle>{t('sentinelAICheck')}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col flex-1">
         <p className="text-sm text-muted-foreground mb-4">
-          Paste text to check for scams, or upload a receipt to update your finances.
+          {t('pasteTextToCheck')}
         </p>
         
         {/* 
@@ -237,7 +239,7 @@ export const SentinelFastChat = () => {
                 Nó trong suốt và nằm gọn trong DIV cha.
             */}
             <Textarea
-              placeholder="e.g., 'Congratulations!...' or Paste image (Ctrl+V)"
+              placeholder={t('placeholderText')}
               className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-base px-4 pt-3 pb-14 mt-0"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
@@ -275,7 +277,7 @@ export const SentinelFastChat = () => {
                   onClick={() => fileInputRef.current?.click()}
               >
                   <ImagePlus className="h-4 w-4 mr-2" />
-                  Add Image
+                  {t('addImage')}
               </Button>
 
               <input
@@ -297,11 +299,11 @@ export const SentinelFastChat = () => {
         >
           {isLoading ? (
             <>
-              <Sparkles className="mr-2 h-4 w-4 animate-spin" /> Analyzing...
+              <Sparkles className="mr-2 h-4 w-4 animate-spin" /> {t('analyzing')}
             </>
           ) : (
             <>
-              <ShieldCheck className="mr-2 h-4 w-4" /> Analyze
+              <ShieldCheck className="mr-2 h-4 w-4" /> {t('analyze')}
             </>
           )}
         </Button>
@@ -311,7 +313,7 @@ export const SentinelFastChat = () => {
         {result?.category === 'ERROR' && (
             <div className="mt-4 p-4 rounded-lg border bg-destructive/10 border-destructive/30 text-center text-destructive">
                 <ShieldAlert className="h-8 w-8 mx-auto mb-2" />
-                <p className="font-semibold">Analysis Failed</p>
+                <p className="font-semibold">{t('analysisFailed')}</p>
                 <p className="text-sm opacity-80">{result.message}</p>
             </div>
         )}

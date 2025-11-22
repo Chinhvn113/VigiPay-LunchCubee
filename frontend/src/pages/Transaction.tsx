@@ -5,15 +5,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Info, Loader2 } from "lucide-react";
+import { Copy, Info, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useBankAccounts } from "@/hooks/useBankAccount";
-import { formatCurrency, calculateTransferFee } from "@/services/bankService";
+import { formatCurrency, calculateTransferFee } from "@/apis/bankService";
 import { useAuth } from "@/contexts/AuthContext";
 import { TransactionProgressHeader } from "@/components/TransactionProgressHeader";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE_URL = '/api';
+
+interface RecentRecipient {
+  account_number: string;
+  account_name: string;
+  bank: string;
+  last_transfer: string;
+}
 
 const Transaction = () => {
   const navigate = useNavigate();
@@ -22,6 +32,21 @@ const Transaction = () => {
   const { user } = useAuth();
   
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts();
+  
+  // Fetch recent recipients
+  const { data: recentRecipients } = useQuery<RecentRecipient[]>({
+    queryKey: ['recentRecipients'],
+    queryFn: async () => {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${API_BASE_URL}/recent-recipients?limit=5`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch recent recipients');
+      return response.json();
+    }
+  });
   
   const [formData, setFormData] = useState({
     sourceAccount: "",
@@ -32,6 +57,12 @@ const Transaction = () => {
     fee: "sender" as 'sender' | 'receiver',
     description: "",
   });
+
+  const [lookupState, setLookupState] = useState<{
+    loading: boolean;
+    error: string | null;
+    verified: boolean;
+  }>({ loading: false, error: null, verified: false });
 
   // Helper: Format number with dots (e.g. 12000000 -> 12.000.000)
   const formatAmountInput = (value: string) => {
@@ -87,6 +118,52 @@ const Transaction = () => {
       toast.info("Transfer details have been pre-filled for your review.");
     }
   }, [location.state]);
+
+  // Auto-lookup recipient name for VigiPay transfers
+  useEffect(() => {
+    const lookupRecipient = async () => {
+      // Only lookup if VigiPay is selected and account number is complete
+      if (formData.bank !== 'vigipay' || formData.recipientAccount.length !== 10) {
+        setLookupState({ loading: false, error: null, verified: false });
+        setFormData(prev => ({ ...prev, recipientName: '' }));
+        return;
+      }
+
+      setLookupState({ loading: true, error: null, verified: false });
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/bank-accounts/lookup/${formData.recipientAccount}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          setLookupState({ 
+            loading: false, 
+            error: error.detail || 'Account not found. Please check the account number.', 
+            verified: false 
+          });
+          setFormData(prev => ({ ...prev, recipientName: '' }));
+          return;
+        }
+
+        const data = await response.json();
+        setFormData(prev => ({ ...prev, recipientName: data.account_holder_name }));
+        setLookupState({ loading: false, error: null, verified: true });
+        
+      } catch (error) {
+        console.error('Lookup error:', error);
+        setLookupState({ 
+          loading: false, 
+          error: 'Failed to lookup account. Please try again.', 
+          verified: false 
+        });
+        setFormData(prev => ({ ...prev, recipientName: '' }));
+      }
+    };
+
+    // Debounce lookup
+    const timeoutId = setTimeout(lookupRecipient, 500);
+    return () => clearTimeout(timeoutId);
+  }, [formData.bank, formData.recipientAccount]);
   
   const selectedAccount = useMemo(() => {
     if (!accounts || !formData.sourceAccount) return null;
@@ -104,6 +181,23 @@ const Transaction = () => {
     return amount; // Fee removed from deduction logic
   }, [formData.amount, transferFee, formData.fee]);
   
+  // Handle click on recent recipient
+  const handleRecipientClick = async (recipient: RecentRecipient) => {
+    setFormData(prev => ({
+      ...prev,
+      bank: recipient.bank,
+      recipientAccount: recipient.account_number,
+      recipientName: recipient.account_name
+    }));
+    
+    // If it's VigiPay, trigger verification
+    if (recipient.bank === 'vigipay') {
+      setLookupState({ loading: false, error: null, verified: true });
+    }
+    
+    toast.success(t('recipientSelected') || 'Recipient information filled');
+  };
+
   const handleConfirm = async () => {
     if (!formData.sourceAccount) {
       toast.error(t('selectSourceAccount') || "Please select source account");
@@ -123,6 +217,16 @@ const Transaction = () => {
     }
     if (!formData.recipientName || formData.recipientName.trim() === '') {
       toast.error(t('enterRecipientName') || "Please enter recipient name");
+      return;
+    }
+    
+    // Additional validation for VigiPay transfers
+    if (formData.bank === 'vigipay' && lookupState.error) {
+      toast.error(lookupState.error);
+      return;
+    }
+    if (formData.bank === 'vigipay' && !lookupState.verified) {
+      toast.error("Please wait for account verification to complete");
       return;
     }
     
@@ -238,7 +342,7 @@ const Transaction = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bank" className="text-foreground">{t('recipientName')}</Label>
+                  <Label htmlFor="bank" className="text-foreground">{t('Recipient Bank')}</Label>
                   <Select
                     value={formData.bank}
                     onValueChange={(value) => setFormData({ ...formData, bank: value })}
@@ -247,6 +351,7 @@ const Transaction = () => {
                       <SelectValue placeholder={t('receiverBank')} />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="vigipay">VigiPay (Internal Transfer)</SelectItem>
                       <SelectItem value="vcb">Vietcombank</SelectItem>
                       <SelectItem value="vietinbank">VietinBank</SelectItem>
                       <SelectItem value="bidv">BIDV</SelectItem>
@@ -257,6 +362,16 @@ const Transaction = () => {
                       <SelectItem value="vpbank">VPBank</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Warning for mock transfers */}
+                  {formData.bank && formData.bank !== 'vigipay' && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg mt-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        <strong>Mock Transfer:</strong> This is a demonstration transfer. Money will be deducted from your account but no real inter-bank transfer will occur.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -297,13 +412,35 @@ const Transaction = () => {
                   <Label htmlFor="recipientName" className="text-sm md:text-base text-foreground">
                     {t('recipientName') || 'Recipient name'} <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="recipientName"
-                    placeholder={t('recipientName') || 'Recipient name'}
-                    className="bg-background/50 border-border/30 h-10 md:h-11 text-sm md:text-base"
-                    value={formData.recipientName}
-                    onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="recipientName"
+                      placeholder={formData.bank === 'vigipay' ? 'Auto-filled for VigiPay' : (t('recipientName') || 'Recipient name')}
+                      className="bg-background/50 border-border/30 h-10 md:h-11 text-sm md:text-base pr-10"
+                      value={formData.recipientName}
+                      onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
+                      disabled={formData.bank === 'vigipay'}
+                    />
+                    {formData.bank === 'vigipay' && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {lookupState.loading && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+                        {lookupState.verified && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                        {lookupState.error && <AlertCircle className="h-4 w-4 text-red-500" />}
+                      </div>
+                    )}
+                  </div>
+                  {formData.bank === 'vigipay' && lookupState.error && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {lookupState.error}
+                    </p>
+                  )}
+                  {formData.bank === 'vigipay' && lookupState.verified && (
+                    <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Account verified: {formData.recipientName}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -386,6 +523,38 @@ const Transaction = () => {
                 <p>• {t('processingTime')}</p>
               </CardContent>
             </Card>
+
+            {/* Recent Recipients */}
+            {recentRecipients && recentRecipients.length > 0 && (
+              <Card className="glass-card border-border/30">
+                <CardHeader>
+                  <CardTitle className="text-base md:text-lg font-semibold text-foreground">
+                    {t('recentRecipients') || 'Recent Recipients'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {recentRecipients.map((recipient, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleRecipientClick(recipient)}
+                      className="w-full p-3 rounded-lg border border-border/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 text-left group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {recipient.account_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {recipient.account_number} • {recipient.bank.toUpperCase()}
+                          </p>
+                        </div>
+                        <Copy className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                    </button>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
         </>

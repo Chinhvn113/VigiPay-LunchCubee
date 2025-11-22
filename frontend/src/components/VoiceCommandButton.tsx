@@ -1,10 +1,18 @@
-// --- START OF FILE VoiceCommandButton.tsx ---
-
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, Square, Loader2 } from 'lucide-react';
+import { Mic, Square, Loader2, AlertTriangle } from 'lucide-react';
 import { Button, ButtonProps } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from "@/i18n/LanguageContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Global definition for Web Speech API
 declare global {
@@ -27,8 +35,13 @@ export const VoiceCommandButton = ({
   children,
   ...props 
 }: VoiceCommandButtonProps) => {
+  const { t } = useLanguage();
   const [isRecording, setIsRecording] = useState(false);
   
+  // --- NEW: State for Internal Fraud Alert ---
+  const [showFraudAlert, setShowFraudAlert] = useState(false);
+  const [fraudMessage, setFraudMessage] = useState("");
+
   // Stores the accumulated text
   const finalTranscriptRef = useRef(""); 
   const recognitionRef = useRef<any>(null); 
@@ -43,7 +56,7 @@ export const VoiceCommandButton = ({
     onProcessing(true);
     
     if (!accessToken) {
-      toast.error('Authentication required.');
+      toast.error(t('authRequired'));
       onProcessing(false);
       return;
     }
@@ -60,7 +73,7 @@ export const VoiceCommandButton = ({
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.detail || 'Could not process command.');
+        throw new Error(err.detail || t('couldNotProcessCommand'));
       }
 
       const result = await response.json();
@@ -69,56 +82,71 @@ export const VoiceCommandButton = ({
         result.transcript = text;
       }
 
+      // --- NEW: Intercept "check_scam" Intent Internally ---
+      if (result.intent === 'check_scam' && result.scam_check_result) {
+        const { verdict, success } = result.scam_check_result;
+        
+        if (success && verdict) {
+           // Check if the verdict implies danger
+           const isDanger = verdict.toLowerCase().includes('scam') || 
+                            verdict.toLowerCase().includes('suspicious') || 
+                            verdict.toLowerCase().includes('fraud');
+
+           if (isDanger) {
+             // Show Alert Dialog internally
+             setFraudMessage(verdict);
+             setShowFraudAlert(true);
+           } else {
+             // Safe verdict - just show a toast
+             toast.success(verdict);
+           }
+        } else {
+          toast.error(t('couldNotAnalyzeScam'));
+        }
+      }
+
+      // Always call onSuccess so parent (SafetyChecking) can handle 'transfer_money'
+      // or show the transcript.
       onSuccess(result);
 
     } catch (error: any) {
       console.error("Voice processing error:", error);
-      toast.error("Voice processing failed. Please try again.");
+      toast.error(t('voiceProcessingFailed'));
     } finally {
       onProcessing(false);
     }
   };
 
   // --- 2. Handle Stop Recording ---
-  // Wrapped in useCallback so we can safely reference it via ref in the Event Listener
   const handleStopRecording = useCallback(() => {
-    // Clear any pending silence timers so they don't fire after we manually stop
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
 
-    // Stop the browser recognition
     if (recognitionRef.current) {
-      // This will trigger 'onend'
       recognitionRef.current.stop();
     }
     
     setIsRecording(false);
     
-    // Small delay to allow the last "final" result to trigger before sending
     setTimeout(() => {
       const textToSend = finalTranscriptRef.current.trim();
       if (textToSend) {
         sendCommandToServer(textToSend);
       } else {
-        // Only warn if we manually stopped and it was empty. 
-        // If auto-stop triggered it, we usually have text.
-        toast.warning("No voice detected.");
+        toast.warning(t('noVoiceDetected'));
       }
     }, 500);
-  }, [accessToken, onSuccess, onProcessing]); // Dependencies for sendCommandToServer logic
+  }, [accessToken, onSuccess, onProcessing]); 
 
-  // --- 3. Keep a Ref to the latest handleStopRecording ---
-  // This allows the SpeechRecognition 'onresult' (created once on mount) 
-  // to call the latest version of the function without re-initializing the recognition object.
   const stopFnRef = useRef(handleStopRecording);
   useEffect(() => {
     stopFnRef.current = handleStopRecording;
   }, [handleStopRecording]);
 
 
-  // --- 4. Initialize Speech Recognition ---
+  // --- 3. Initialize Speech Recognition ---
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
@@ -150,63 +178,49 @@ export const VoiceCommandButton = ({
           onTranscript(displayParams);
         }
 
-        // --- Silence Detection Logic ---
-        // 1. Clear existing timer
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
-        // 2. Set a new timer. If 1500ms passes without this being cleared by a new result,
-        // we assume the user stopped speaking.
         silenceTimerRef.current = setTimeout(() => {
-          // Only auto-stop if we actually have captured some text
           if (displayParams.length > 0) {
-            toast.info("Processing...");
-            stopFnRef.current(); // Call the fresh handleStopRecording function
+            toast.info(t('processing'));
+            stopFnRef.current(); 
           }
         }, 1500);
       };
 
       recognition.onend = () => {
         setIsRecording(false);
-        // Ensure timer is cleared when recognition naturally ends
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       };
 
       recognition.onerror = (event: any) => {
         console.warn("Speech recognition error:", event.error);
         if (event.error === 'not-allowed') {
-          toast.error("Microphone access denied.");
+          toast.error(t('microphoneAccessDenied'));
           setIsRecording(false);
         }
-        // Clear timer on error
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       };
 
       recognitionRef.current = recognition;
-    } else {
-      console.error("Web Speech API not supported in this browser.");
     }
-
-    // Cleanup on unmount
     return () => {
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (recognitionRef.current) recognitionRef.current.stop();
     };
-  }, [onTranscript]); // Only re-run if onTranscript changes (usually doesn't)
+  }, [onTranscript]);
 
   const handleStartRecording = () => {
     if (!recognitionRef.current) {
-      toast.error("Voice recognition not supported in this browser.");
+      toast.error(t('voiceRecognitionNotSupported'));
       return;
     }
-
     try {
-      // Reset transcript storage
       finalTranscriptRef.current = "";
       if (onTranscript) onTranscript("");
-
       recognitionRef.current.start();
       setIsRecording(true);
-      toast.info('Listening...', { duration: 2000 });
+      toast.info(t('listening'), { duration: 2000 });
     } catch (e) {
       console.error("Failed to start recognition:", e);
     }
@@ -221,20 +235,40 @@ export const VoiceCommandButton = ({
   };
 
   return (
-    <Button
-      onClick={handleClick}
-      variant={isRecording ? 'destructive' : 'outline'}
-      className={`${isRecording ? "ring-2 ring-destructive/30" : ""} transition-all duration-200`}
-      type="button"
-      {...props}
-    >
-      {props.disabled && !isRecording ? (
-        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
-      ) : isRecording ? (
-        <><Square className="h-4 w-4 mr-2 fill-current" /> Stop</>
-      ) : (
-        <><Mic className="h-4 w-4 mr-2" /> {children || 'Use Voice'}</>
-      )}
-    </Button>
+    <>
+      <Button
+        onClick={handleClick}
+        variant={isRecording ? 'destructive' : 'outline'}
+        className={`${isRecording ? "ring-2 ring-destructive/30" : ""} transition-all duration-200`}
+        type="button"
+        {...props}
+      >
+        {props.disabled && !isRecording ? (
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t('processing')}</>
+        ) : isRecording ? (
+          <><Square className="h-4 w-4 mr-2 fill-current" /> {t('stop')}</>
+        ) : (
+          <><Mic className="h-4 w-4 mr-2" /> {children || t('useVoice')}</>
+        )}
+      </Button>
+
+      {/* --- NEW: Internal Fraud Alert Dialog --- */}
+      <AlertDialog open={showFraudAlert} onOpenChange={setShowFraudAlert}>
+        <AlertDialogContent className="max-w-md border-l-4 border-red-500">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-6 w-6" />
+              <AlertDialogTitle>{t('safetyAlert')}</AlertDialogTitle>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogDescription className="text-base mt-2 font-medium text-foreground">
+            {fraudMessage}
+          </AlertDialogDescription>
+          <div className="flex justify-end gap-3 mt-4">
+            <AlertDialogCancel>{t('close')}</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

@@ -41,16 +41,6 @@ export const AppSidebar = () => {
       collapsible="icon"
       className="border-sidebar-border transition-all duration-300 z-20"
     >
-      <SidebarHeader className="h-16 flex items-center justify-center px-6 border-sidebar-border">
-        {open ? (
-          <h1 className="text-xl font-bold truncate">
-            <span className="text-primary">{t('appTitle')}</span>
-          </h1>
-        ) : (
-          <h1 className="text-xl font-bold text-primary">{t('appTitleShort')}</h1>
-        )}
-      </SidebarHeader>
-      
       <SidebarContent>
         {/* Navigation */}
         <SidebarMenu className="px-2 pt-4 space-y-1">

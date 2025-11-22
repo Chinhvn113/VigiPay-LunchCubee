@@ -33,7 +33,7 @@ interface DashboardLayoutProps {
 const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, fullHeight }: any) => {
   const { open, isMobile, setOpen } = useSidebar();
   const { logout, user } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   
   useEffect(() => {
     localStorage.setItem("sidebar:state", String(open));
@@ -59,7 +59,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
 
     // --- TRANSFER LOGIC ---
     if (payload.intent === 'transfer_money' || payload.intent === 'transaction') {
-      sonnerToast.success(`Transfer request detected.`);
+      sonnerToast.success(t('transferRequestDetected'));
       
       setTimeout(() => {
         navigate('/transaction', { 
@@ -75,7 +75,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
     } 
     // --- PHONE TOP UP LOGIC ---
     else if (payload.intent === 'phone_topup') {
-      sonnerToast.success(`Top-up request detected.`);
+      sonnerToast.success(t('topupRequestDetected'));
       
       setTimeout(() => {
         navigate('/phone-topup', { 
@@ -91,8 +91,8 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
     } 
     // --- GENERAL CHAT ---
     else if (result.intent === 'general_chat') {
-      const botReply = result.reply || "I am sorry, I could not understand that.";
-      const userTranscript = result.transcript || "Unknown command";
+      const botReply = result.reply || t('botReplyDefault');
+      const userTranscript = result.transcript || t('unknownCommand');
       
       setChatResult({
         user: userTranscript,
@@ -100,14 +100,14 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
       });
     } 
     else {
-      sonnerToast.warning('Command not understood.');
+      sonnerToast.warning(t('voiceCommandFailed'));
     }
   };
 
   const handleLogout = async () => {
     try {
       await logout();
-      sonnerToast.success("Logged Out");
+      sonnerToast.success(t('loggedOut'));
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
@@ -139,7 +139,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
             <div className="flex justify-between items-center p-4 border-b bg-muted/30">
               <h3 className="font-semibold flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-primary" /> 
-                Assistant
+                {t('assistant')}
               </h3>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setChatResult(null)}>
                 <X className="h-4 w-4" />
@@ -147,7 +147,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
             </div>
             <CardContent className="p-6 space-y-4">
               <div className="bg-muted/50 p-3 rounded-lg">
-                <p className="text-xs font-medium text-muted-foreground mb-1">You said:</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t('youSaid')}</p>
                 <p className="text-sm text-foreground italic">"{chatResult.user}"</p>
               </div>
               <div className="flex gap-3 items-start">
@@ -159,7 +159,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
                 </div>
               </div>
               <Button className="w-full mt-4" onClick={() => setChatResult(null)}>
-                Close
+                {t('close')}
               </Button>
             </CardContent>
           </Card>
@@ -195,7 +195,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
                 className="text-sidebar-foreground hover:text-primary gap-2 transition-all duration-300"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">{language === 'vi' ? 'Về trang chủ' : 'Back to Home'}</span>
+                <span className="hidden sm:inline">{t('backToHome')}</span>
               </Button>
             )}
           </div>
@@ -207,7 +207,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
               <div 
                 className="absolute top-14 right-0 w-64 p-3 bg-background/90 border border-primary/20 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 hidden sm:block"
               >
-                <p className="text-xs font-semibold text-primary mb-0.5">Listening:</p>
+                <p className="text-xs font-semibold text-primary mb-0.5">{t('listening')}</p>
                 <p className="text-sm text-foreground italic line-clamp-2">"{headerTranscript}"</p>
               </div>
             )}
@@ -219,7 +219,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
               size="sm"
               className="gap-2"
             >
-              {isVoiceProcessing ? "Thinking..." : "Use Voice"}
+              {isVoiceProcessing ? t('processing') : t('useVoice')}
             </VoiceCommandButton>
 
             {/* DropdownMenu: Added modal={false} here purely as a fallback, 
@@ -245,12 +245,12 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSettings}>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>{language === 'vi' ? 'Cài đặt' : 'Settings'}</span>
+                  <span>{t('settings')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <Globe className="mr-2 h-4 w-4" />
-                    <span>{language === 'vi' ? 'Ngôn ngữ' : 'Language'}</span>
+                    <span>{t('language')}</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuRadioGroup value={language} onValueChange={setLanguage}>
@@ -262,7 +262,7 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>{language === 'vi' ? 'Đăng xuất' : 'Logout'}</span>
+                  <span>{t('logout')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

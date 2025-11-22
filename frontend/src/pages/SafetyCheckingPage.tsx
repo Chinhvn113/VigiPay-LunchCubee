@@ -15,6 +15,7 @@ import { TransactionProgressHeader } from "@/components/TransactionProgressHeade
 
 type CheckStatus = 
   | 'checking_ml'      // Initial check with Random Forest model
+  | 'high_amount'      // Transfer amount > 90% of account balance
   | 'ml_warning'       // ML model flagged as potential scam
   | 'checking_llm'     // User submitted more info, checking with LLM
   | 'llm_warning'      // LLM also flagged as a scam
@@ -32,6 +33,7 @@ export const SafetyCheckingPage = () => {
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [mlMessage, setMlMessage] = useState("");
   const [llmVerdict, setLlmVerdict] = useState("");
+  const [highAmountWarning, setHighAmountWarning] = useState("");
 
   const transactionData = location.state;
 
@@ -44,6 +46,17 @@ export const SafetyCheckingPage = () => {
     }
 
     const runInitialCheck = async () => {
+      // Check if transfer amount is more than 90% of account balance
+      if (transactionData.sender_account_balance && transactionData.amount) {
+        const transferPercentage = (transactionData.amount / transactionData.sender_account_balance) * 100;
+        if (transferPercentage > 90) {
+          const warning = `You are transferring ${transferPercentage.toFixed(1)}% of your account balance. Please confirm this is intentional.`;
+          setHighAmountWarning(warning);
+          setStatus('high_amount');
+          return;
+        }
+      }
+
       try {
         const response = await fetch("/api/safety-check", {
           method: "POST",
@@ -54,6 +67,7 @@ export const SafetyCheckingPage = () => {
           body: JSON.stringify({
             sender_account_id: transactionData.sender_account_id,
             amount: transactionData.amount,
+            receiver_account_number: transactionData.receiver_account_number || null  // Pass receiver account number to check destination user's fraud status
           })
         });
 
@@ -65,7 +79,7 @@ export const SafetyCheckingPage = () => {
 
         if (result.is_safe) {
           setStatus('safe');
-          toast.success("Transaction is safe. Proceeding to confirmation.");
+          toast.success(t('safeRedirect'));
           setTimeout(() => {
             navigate("/transaction-confirmation", { state: transactionData });
           }, 1500);
@@ -76,17 +90,17 @@ export const SafetyCheckingPage = () => {
       } catch (error) {
         console.error("Safety check error:", error);
         setStatus('error');
-        toast.error("Could not complete safety check due to a server error.");
+        toast.error(t('checkErrorDesc'));
       }
     };
 
     runInitialCheck();
-  }, [token, transactionData, navigate]);
+  }, [token, transactionData, navigate, t]);
 
   // --- 2. Deeper LLM Scam Check ---
   const handleLlmCheck = async () => {
     if (!additionalInfo.trim()) {
-      toast.error("Please provide some context about this transaction.");
+      toast.error(t('provideContext'));
       return;
     }
     setStatus('checking_llm');
@@ -119,7 +133,7 @@ export const SafetyCheckingPage = () => {
       const result = await response.json();
 
       if (result.verdict && result.verdict.toLowerCase().includes("not a scam")) {
-        toast.success("AI analysis suggests this is likely safe. Proceeding.");
+        toast.success(t('safeRedirect'));
         setStatus('safe');
         setTimeout(() => {
           navigate("/transaction-confirmation", { state: transactionData });
@@ -129,7 +143,7 @@ export const SafetyCheckingPage = () => {
         setStatus('llm_warning');
       }
     } catch (error) {
-      toast.error("Could not complete AI analysis. Please try again.");
+      toast.error(t('checkErrorDesc'));
       setStatus('ml_warning'); // Revert to the previous state
     }
   };
@@ -137,22 +151,88 @@ export const SafetyCheckingPage = () => {
   const handleSkipAndContinue = () => {
     navigate("/transaction-confirmation", { state: transactionData });
   };
+
+  const handleConfirmHighAmount = () => {
+    // User confirmed they want to proceed with high amount transfer
+    setStatus('checking_ml');
+    // Re-run the safety check
+    const runInitialCheck = async () => {
+      try {
+        const response = await fetch("/api/safety-check", {
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender_account_id: transactionData.sender_account_id,
+            amount: transactionData.amount,
+            receiver_account_number: transactionData.receiver_account_number || null
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to perform safety check.");
+        }
+
+        const result = await response.json();
+
+        if (result.is_safe) {
+          setStatus('safe');
+          toast.success(t('safeRedirect'));
+          setTimeout(() => {
+            navigate("/transaction-confirmation", { state: transactionData });
+          }, 1500);
+        } else {
+          setMlMessage(result.message);
+          setStatus('ml_warning');
+        }
+      } catch (error) {
+        console.error("Safety check error:", error);
+        setStatus('error');
+        toast.error(t('checkErrorDesc'));
+      }
+    };
+    runInitialCheck();
+  };
   
   const handleCancel = () => {
-    toast.info("Transaction cancelled.");
+    toast.info(t('cancelTransaction'));
     navigate("/transaction");
   }
 
   // --- UI Rendering based on Status ---
   const renderContent = () => {
     switch (status) {
+      case 'high_amount':
+        return (
+          <div className="space-y-6">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>High Transfer Amount</AlertTitle>
+              <AlertDescription>{highAmountWarning}</AlertDescription>
+            </Alert>
+            <p className="text-center text-sm text-muted-foreground">
+              This is an unusual amount to transfer. Please make sure you know the recipient and this transaction is legitimate.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button onClick={handleConfirmHighAmount} className="flex-1">
+                Confirm and Continue
+              </Button>
+              <Button onClick={handleCancel} variant="outline" className="flex-1">
+                Cancel Transaction
+              </Button>
+            </div>
+          </div>
+        );
+
       case 'checking_ml':
       case 'checking_llm':
         return (
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-            <h2 className="text-xl font-semibold">Analyzing Transaction...</h2>
-            <p className="text-muted-foreground">Please wait while we check your transaction for potential risks.</p>
+            <h2 className="text-xl font-semibold">{t('analyzing')}</h2>
+            <p className="text-muted-foreground">{t('analyzingDesc')}</p>
           </div>
         );
 
@@ -160,8 +240,8 @@ export const SafetyCheckingPage = () => {
         return (
           <div className="text-center space-y-4 text-green-500">
             <ShieldCheck className="h-12 w-12 mx-auto" />
-            <h2 className="text-xl font-semibold">All Clear!</h2>
-            <p>Your transaction appears safe. Redirecting you to the confirmation page...</p>
+            <h2 className="text-xl font-semibold">{t('allClear')}</h2>
+            <p>{t('safeRedirect')}</p>
           </div>
         );
 
@@ -170,14 +250,14 @@ export const SafetyCheckingPage = () => {
           <div className="space-y-6">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Potential Risk Detected</AlertTitle>
+              <AlertTitle>{t('potentialRisk')}</AlertTitle>
               <AlertDescription>{mlMessage}</AlertDescription>
             </Alert>
             <div className="space-y-2">
-              <Label htmlFor="context">For a more accurate check, provide context (e.g., chat messages):</Label>
+              <Label htmlFor="context">{t('provideContext')}</Label>
               <Textarea
                 id="context"
-                placeholder="Copy and paste the conversation that led to this transfer..."
+                placeholder={t('contextPlaceholder')}
                 rows={5}
                 value={additionalInfo}
                 onChange={(e) => setAdditionalInfo(e.target.value)}
@@ -185,10 +265,10 @@ export const SafetyCheckingPage = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button onClick={handleLlmCheck} className="flex-1">
-                Check with Advanced AI
+                {t('checkAI')}
               </Button>
               <Button onClick={handleSkipAndContinue} variant="secondary" className="flex-1">
-                Skip & Continue <ArrowRight className="ml-2 h-4 w-4" />
+                {t('skipContinue')} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -199,20 +279,20 @@ export const SafetyCheckingPage = () => {
           <div className="space-y-6">
             <Alert variant="destructive">
               <MessageSquareWarning className="h-4 w-4" />
-              <AlertTitle>High Risk Warning!</AlertTitle>
+              <AlertTitle>{t('highRisk')}</AlertTitle>
               <AlertDescription>
-                Our advanced AI analysis also indicates a high risk of a scam.
-                <p className="font-medium mt-2">AI Verdict:</p>
+                {t('highRiskDesc')}
+                <p className="font-medium mt-2">{t('aiVerdict')}</p>
                 <p className="italic">"{llmVerdict}"</p>
               </AlertDescription>
             </Alert>
-             <p className="text-center text-lg font-medium">Are you absolutely sure you want to proceed?</p>
+             <p className="text-center text-lg font-medium">{t('sureProceed')}</p>
             <div className="flex flex-col sm:flex-row gap-4">
                <Button onClick={handleCancel} variant="outline" className="flex-1">
-                Cancel Transaction
+                {t('cancelTransaction')}
               </Button>
               <Button onClick={handleSkipAndContinue} variant="destructive" className="flex-1">
-                Yes, Continue Anyway
+                {t('continueAnyway')}
               </Button>
             </div>
           </div>
@@ -222,9 +302,9 @@ export const SafetyCheckingPage = () => {
         return (
           <div className="text-center space-y-4">
             <AlertTriangle className="h-12 w-12 mx-auto text-destructive" />
-            <h2 className="text-xl font-semibold">An Error Occurred</h2>
-            <p className="text-muted-foreground">We couldn't complete the safety check. Please try again.</p>
-            <Button onClick={handleCancel}>Back to Transfer</Button>
+            <h2 className="text-xl font-semibold">{t('errorOccurred')}</h2>
+            <p className="text-muted-foreground">{t('checkErrorDesc')}</p>
+            <Button onClick={handleCancel}>{t('backToTransfer')}</Button>
           </div>
         );
     }
@@ -236,7 +316,7 @@ export const SafetyCheckingPage = () => {
         <TransactionProgressHeader currentStep={2} />
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Transaction Safety Check</CardTitle>
+            <CardTitle className="text-2xl text-center">{t('safetyCheckTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="min-h-[250px] flex items-center justify-center">
             {renderContent()}

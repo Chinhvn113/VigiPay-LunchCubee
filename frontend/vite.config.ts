@@ -9,13 +9,13 @@ export default defineConfig(({ mode }) => ({
     sourcemap: true
   },
   server: {
-    host: "::",
-    port: 7000,
+    host: "0.0.0.0",
+    port: 80,
     // Proxy configuration for API requests
     proxy: {
       // Any request that starts with '/api' will be proxied to backend
       '/api': {
-        target: 'http://192.168.20.156:6011',
+        target: 'http://223.130.132.136:6011',
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
       },
