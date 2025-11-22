@@ -341,12 +341,6 @@ load_dotenv()
 
 ## License
 
-Built for Naver Bank's Sentinel AI Platform.
+Built for VigiPay an AI assisted banking application.
 
-## Support
 
-For issues or questions:
-1. Check the troubleshooting section
-2. Review API documentation: http://localhost:5000/docs
-3. Check HyperClovaX API status
-4. Verify internet connection and firewall settings
