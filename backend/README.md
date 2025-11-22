@@ -1,6 +1,6 @@
-# Sentinel AI Chat Backend
+# Vigipay
 
-FastAPI-based backend for the Sentinel AI Chatbot using HyperClovaX API.
+FastAPI-based backend using HyperClovaX API.
 ---
 ## Features
 
