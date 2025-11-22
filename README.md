@@ -73,6 +73,7 @@ VigiPay/
 │ ├── apis
 
 │ ├── components
+
 │ ├── contexts
 
 │ ├── hooks
@@ -85,8 +86,7 @@ VigiPay/
 
 ├── docs/
 
-│ └── system_architecture.png
-
+│ └── system_architecture.png  
 └── README.md
 
 ---
@@ -123,6 +123,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
 
 
