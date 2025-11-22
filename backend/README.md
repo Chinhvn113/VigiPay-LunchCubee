@@ -1,4 +1,4 @@
-# Vigipay
+# Vigipay backend
 
 FastAPI-based backend using HyperClovaX API.
 ---
