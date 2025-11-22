@@ -118,7 +118,7 @@ cp .env.example .env
 Now, run the backend server from the `src` directory:
 ```bash
 cd src
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn hypercolvax:app --host 0.0.0.0 --port 8000 --reload
 ```
 The API documentation will be available at `http://localhost:8000/docs`.
 
@@ -141,6 +141,7 @@ npm run dev
 The application will be accessible at `http://localhost:5173`.
 
 ---
+
 
 
 
