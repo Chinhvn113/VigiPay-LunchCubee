@@ -56,19 +56,19 @@ A full architecture diagram is included in `/docs/system_architecture.jpg`.
 
 VigiPay/  
 ├── backend/  
-│ └── prompts/  
-│ ├── rag_database/  
-│ ├── src/  
+│ └── prompts  
+│ ├── rag_database  
+│ ├── src  
 ├── frontend/  
 │ ├── public/  
 │ ├── src/  
-│ ├── apis  
-│ ├── components  
-│ ├── contexts  
-│ ├── hooks  
-│ ├── i18n  
-│ ├── lib  
-│ ├── pages  
+│ | ├── apis  
+│ | ├── components  
+│ | ├── contexts  
+│ | ├── hooks  
+│ | ├── i18n  
+│ | ├── lib  
+│ | ├── pages  
 ├── docs/  
 │ └── system_architecture.png  
 └── README.md
@@ -107,6 +107,7 @@ cd frontend
 npm install
 npm run dev
 ```
+
 
 
 
