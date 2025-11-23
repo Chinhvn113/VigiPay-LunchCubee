@@ -1,6 +1,6 @@
 """
 Naver Bank Main API Application
-Combines all routers (auth, savings goals, accounts, etc.)
+Combines all routers (auth, savings goals, accounts,...)
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
