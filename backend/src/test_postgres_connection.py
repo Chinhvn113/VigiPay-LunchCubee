@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-"""
-Quick connection test for PostgreSQL database
-Usage: python test_postgres_connection.py
-"""
 import os
 import sys
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
-# Load environment
 load_dotenv()
 
 def main():

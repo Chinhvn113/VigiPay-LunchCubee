@@ -44,43 +44,36 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
   const [headerTranscript, setHeaderTranscript] = useState("");
 
   const handleVoiceCommandResult = (result: any) => {
-    // Clear real-time transcript
     setHeaderTranscript("");
     
     if (!result) return;
 
     setChatResult(null);
 
-    // 1. FLATTEN THE DATA (Fixes the empty data issue)
-    // This ensures we catch the data whether it's in 'entities' or at the top level
     const payload = { ...result, ...(result.entities || {}) };
     
-    console.log("Global Voice Payload:", payload); // Debug check
+    console.log("Global Voice Payload:", payload); 
 
-    // --- TRANSFER LOGIC ---
     if (payload.intent === 'transfer_money' || payload.intent === 'transaction') {
       sonnerToast.success(t('transferRequestDetected'));
       
       setTimeout(() => {
         navigate('/transaction', { 
           state: { 
-            // Transaction.tsx expects these keys at the top level
             recipientAccount: payload.account_number || payload.recipient_account || payload.account || payload.recipientAccount,
-            account_number: payload.account_number, // Send both just in case
+            account_number: payload.account_number, 
             amount: payload.amount,
             description: payload.description || payload.reason
           } 
         });
       }, 100);
     } 
-    // --- PHONE TOP UP LOGIC ---
     else if (payload.intent === 'phone_topup') {
       sonnerToast.success(t('topupRequestDetected'));
       
       setTimeout(() => {
         navigate('/phone-topup', { 
           state: { 
-            // PhoneTopup.tsx explicitly expects a 'prefill' object
             prefill: {
               phone_number: payload.phone_number || payload.phone,
               amount: payload.amount
@@ -89,7 +82,6 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
         });
       }, 100);
     } 
-    // --- GENERAL CHAT ---
     else if (result.intent === 'general_chat') {
       const botReply = result.reply || t('botReplyDefault');
       const userTranscript = result.transcript || t('unknownCommand');
@@ -132,7 +124,6 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
         />
       )}
       
-      {/* CHAT OVERLAY DIALOG */}
       {chatResult && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 border-primary/20">
@@ -166,18 +157,15 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
         </div>
       )}
       
-      {/* Background Image Layer */}
       <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none select-none">
           <img 
             src={backgroundImg} 
             alt="" 
             className="w-full h-full object-cover opacity-100"
           />
-          {/* Dark Overlay for readability */}
           <div className="absolute inset-0 bg-background/30 backdrop-blur-[2px]" />
       </div>
 
-      {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col w-full transition-all duration-300 relative bg-transparent">
         <header 
           style={{
@@ -202,7 +190,6 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
           
           <div className="flex items-center gap-2 md:gap-4 relative">
             
-            {/* [ADD] Real-time Transcript box near the header button */}
             {headerTranscript && (
               <div 
                 className="absolute top-14 right-0 w-64 p-3 bg-background/90 border border-primary/20 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 hidden sm:block"
@@ -222,8 +209,6 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
               {isVoiceProcessing ? t('processing') : t('useVoice')}
             </VoiceCommandButton>
 
-            {/* DropdownMenu: Added modal={false} here purely as a fallback, 
-                but standard behavior is now protected by CSS anyway. */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
@@ -269,7 +254,6 @@ const DashboardContent = ({ children, sidebar, navigate, location, isHomePage, f
           </div>
         </header>
         
-        {/* Main Content Area */}
         {fullHeight ? (
           <main className="flex-1 flex flex-col min-h-0 relative z-10 pt-16">
             {children}

@@ -33,7 +33,6 @@ const Transaction = () => {
   
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts();
   
-  // Fetch recent recipients
   const { data: recentRecipients } = useQuery<RecentRecipient[]>({
     queryKey: ['recentRecipients'],
     queryFn: async () => {
@@ -64,14 +63,13 @@ const Transaction = () => {
     verified: boolean;
   }>({ loading: false, error: null, verified: false });
 
-  // Helper: Format number with dots (e.g. 12000000 -> 12.000.000)
+
   const formatAmountInput = (value: string) => {
     const cleanValue = value.replace(/\D/g, '');
     if (!cleanValue) return "";
     return cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  // Helper: Get raw number for calculations (e.g. 12.000.000 -> 12000000)
   const getRawAmount = (formattedValue: string) => {
     return parseFloat(formattedValue.replace(/\./g, '').replace(/,/g, '')) || 0;
   };
@@ -99,7 +97,6 @@ const Transaction = () => {
         bank: editData.bank,
         recipientAccount: editData.recipientAccount,
         recipientName: editData.recipientName,
-        // Apply formatting to the amount from edit data
         amount: formatAmountInput(editData.amount),
         fee: editData.fee,
         description: editData.description,
@@ -111,7 +108,6 @@ const Transaction = () => {
       setFormData(prevData => ({
         ...prevData,
         recipientAccount: location.state.account_number || location.state.recipientAccount || prevData.recipientAccount,
-        // Apply formatting to the amount from incoming state
         amount: location.state.amount ? formatAmountInput(String(location.state.amount)) : prevData.amount,
         description: location.state.description || prevData.description,
       }));
@@ -119,10 +115,8 @@ const Transaction = () => {
     }
   }, [location.state]);
 
-  // Auto-lookup recipient name for VigiPay transfers
   useEffect(() => {
     const lookupRecipient = async () => {
-      // Only lookup if VigiPay is selected and account number is complete
       if (formData.bank !== 'vigipay' || formData.recipientAccount.length !== 10) {
         setLookupState({ loading: false, error: null, verified: false });
         setFormData(prev => ({ ...prev, recipientName: '' }));
@@ -160,7 +154,6 @@ const Transaction = () => {
       }
     };
 
-    // Debounce lookup
     const timeoutId = setTimeout(lookupRecipient, 500);
     return () => clearTimeout(timeoutId);
   }, [formData.bank, formData.recipientAccount]);
@@ -178,10 +171,9 @@ const Transaction = () => {
   
   const totalDeduction = useMemo(() => {
     const amount = getRawAmount(formData.amount);
-    return amount; // Fee removed from deduction logic
+    return amount; 
   }, [formData.amount, transferFee, formData.fee]);
   
-  // Handle click on recent recipient
   const handleRecipientClick = async (recipient: RecentRecipient) => {
     setFormData(prev => ({
       ...prev,
@@ -190,7 +182,6 @@ const Transaction = () => {
       recipientName: recipient.account_name
     }));
     
-    // If it's VigiPay, trigger verification
     if (recipient.bank === 'vigipay') {
       setLookupState({ loading: false, error: null, verified: true });
     }
@@ -220,7 +211,6 @@ const Transaction = () => {
       return;
     }
     
-    // Additional validation for VigiPay transfers
     if (formData.bank === 'vigipay' && lookupState.error) {
       toast.error(lookupState.error);
       return;
@@ -251,7 +241,7 @@ const Transaction = () => {
         receiver_account_number: formData.recipientAccount,
         receiver_bank: formData.bank,
         receiver_name: formData.recipientName.trim(),
-        amount: amount, // Pass the raw number to the next screen
+        amount: amount, 
         fee: transferFee,
         fee_payer: formData.fee,
         description: formData.description && formData.description.trim() ? formData.description.trim() : undefined,

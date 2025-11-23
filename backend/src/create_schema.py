@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, text
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL").split("?")[0]  # Remove query params
+DATABASE_URL = os.getenv("DATABASE_URL").split("?")[0]  
 
 print("=" * 70)
 print("🏗️  Creating PUBLIC Schema")
@@ -21,13 +21,11 @@ try:
     with engine.connect() as conn:
         print("✅ Connected to naverbank database")
         
-        # Get current user
         result = conn.execute(text("SELECT current_user;"))
         user = result.scalar()
         print(f"   User: {user}")
         print()
         
-        # Try to create schema public (if not exists)
         print("🔨 Creating schema 'public' (if not exists)...")
         try:
             conn.execute(text("CREATE SCHEMA IF NOT EXISTS public;"))
@@ -36,7 +34,6 @@ try:
             print(f"⚠️  {e}")
             print("   Schema might already exist")
         
-        # Grant all privileges to current user
         print(f"\n🔑 Granting privileges to {user}...")
         try:
             conn.execute(text(f"GRANT ALL ON SCHEMA public TO {user};"))
@@ -50,7 +47,6 @@ try:
         except Exception as e:
             print(f"⚠️  {e}")
         
-        # Grant to PUBLIC (all users)
         try:
             conn.execute(text("GRANT USAGE ON SCHEMA public TO PUBLIC;"))
             conn.execute(text("GRANT CREATE ON SCHEMA public TO PUBLIC;"))
@@ -58,7 +54,6 @@ try:
         except Exception as e:
             print(f"⚠️  {e}")
         
-        # Set search_path for user
         print(f"\n🔍 Setting default search_path...")
         try:
             conn.execute(text(f"ALTER USER {user} SET search_path TO public;"))
@@ -66,7 +61,6 @@ try:
         except Exception as e:
             print(f"⚠️  {e}")
         
-        # Verify schema exists
         print("\n📊 Verifying schemas...")
         result = conn.execute(text("""
             SELECT schema_name, schema_owner 

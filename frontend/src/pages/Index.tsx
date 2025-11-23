@@ -2,8 +2,8 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { AppSidebar } from "@/components/AppSidebar";
 import { FavoriteFunctions } from "@/components/FavoriteFunctions";
 import { AccountCard } from "@/components/AccountCard";
-import { FinanceQuoteWidget } from "@/components/FinanceQuoteWidget"; // <-- Import new component
-import { SentinelFastChat } from "@/components/SentinelFastChat";   // <-- Import new component
+import { FinanceQuoteWidget } from "@/components/FinanceQuoteWidget"; 
+import { SentinelFastChat } from "@/components/SentinelFastChat";   
 import { WelcomeBanner } from "@/components/WelcomeBanner";
 
 const Index = () => {

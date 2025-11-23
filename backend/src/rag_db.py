@@ -126,7 +126,7 @@ class MilvusRAGDB:
                 try:
                     with open(path, 'r', encoding='utf-8') as f:
                         content = f.read()
-                        if content.strip(): # Ensure file is not empty
+                        if content.strip(): 
                             batch_texts.append(content)
                             batch_metadatas.append({
                                 "source": os.path.basename(path),
@@ -139,7 +139,7 @@ class MilvusRAGDB:
                 try:
                     await asyncio.wait_for(
                         self.insert_with_texts(batch_texts, batch_metadatas, flush=False),
-                        timeout=300  # 5 minute timeout per batch
+                        timeout=300  
                     )
                 except asyncio.TimeoutError:
                     print(f"❌ Timeout while processing batch {i//batch_size + 1}. Skipping...")
@@ -201,13 +201,12 @@ class MilvusRAGDB:
         metadata_strs = [json.dumps(metadata) for metadata in metadatas]
         
         entities = [
-            embeddings, # Pymilvus 2.x accepts list of lists directly
+            embeddings, 
             metadata_strs
         ]
         
         try:
             print(f"📝 Inserting {len(embeddings)} documents into Milvus...")
-            # Run blocking operations in a thread pool to avoid blocking the event loop
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self.collection.insert, entities)
             print(f"✅ Insert completed for {len(embeddings)} documents")
@@ -240,7 +239,6 @@ class MilvusRAGDB:
             
         print(f"✅ Generated query embedding. Searching...")
         
-        # Search parameters for HNSW
         search_params = {"metric_type": "COSINE", "params": {"ef": 128}}
         
         try:
@@ -253,7 +251,7 @@ class MilvusRAGDB:
                     limit=top_k, 
                     output_fields=["metadata"]
                 )),
-                timeout=30  # 30 second timeout for search
+                timeout=30  
             )
         except asyncio.TimeoutError:
             print(f"❌ Search operation timed out.")
@@ -268,7 +266,7 @@ class MilvusRAGDB:
                 metadata = json.loads(hit.entity.get("metadata"))
                 hit_list.append({
                     "id": hit.id, 
-                    "distance": hit.distance, # For COSINE, lower is better (more similar)
+                    "distance": hit.distance, 
                     "metadata": metadata
                 })
         
@@ -298,7 +296,7 @@ class MilvusRAGDB:
                     limit=top_k, 
                     output_fields=["metadata"]
                 )),
-                timeout=30  # 30 second timeout for search
+                timeout=30  
             )
         except asyncio.TimeoutError:
             print(f"❌ Search operation timed out.")

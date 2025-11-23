@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Global definition for Web Speech API
 declare global {
   interface Window {
     webkitSpeechRecognition: any;
@@ -38,20 +37,16 @@ export const VoiceCommandButton = ({
   const { t } = useLanguage();
   const [isRecording, setIsRecording] = useState(false);
   
-  // --- NEW: State for Internal Fraud Alert ---
   const [showFraudAlert, setShowFraudAlert] = useState(false);
   const [fraudMessage, setFraudMessage] = useState("");
 
-  // Stores the accumulated text
   const finalTranscriptRef = useRef(""); 
   const recognitionRef = useRef<any>(null); 
   
-  // Ref for the silence detection timer
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { accessToken } = useAuth();
 
-  // --- 1. Logic to Send to Server ---
   const sendCommandToServer = async (text: string) => {
     onProcessing(true);
     
@@ -82,22 +77,18 @@ export const VoiceCommandButton = ({
         result.transcript = text;
       }
 
-      // --- NEW: Intercept "check_scam" Intent Internally ---
       if (result.intent === 'check_scam' && result.scam_check_result) {
         const { verdict, success } = result.scam_check_result;
         
         if (success && verdict) {
-           // Check if the verdict implies danger
            const isDanger = verdict.toLowerCase().includes('scam') || 
                             verdict.toLowerCase().includes('suspicious') || 
                             verdict.toLowerCase().includes('fraud');
 
            if (isDanger) {
-             // Show Alert Dialog internally
              setFraudMessage(verdict);
              setShowFraudAlert(true);
            } else {
-             // Safe verdict - just show a toast
              toast.success(verdict);
            }
         } else {
@@ -105,8 +96,6 @@ export const VoiceCommandButton = ({
         }
       }
 
-      // Always call onSuccess so parent (SafetyChecking) can handle 'transfer_money'
-      // or show the transcript.
       onSuccess(result);
 
     } catch (error: any) {
@@ -117,7 +106,6 @@ export const VoiceCommandButton = ({
     }
   };
 
-  // --- 2. Handle Stop Recording ---
   const handleStopRecording = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -146,7 +134,6 @@ export const VoiceCommandButton = ({
   }, [handleStopRecording]);
 
 
-  // --- 3. Initialize Speech Recognition ---
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
@@ -252,7 +239,6 @@ export const VoiceCommandButton = ({
         )}
       </Button>
 
-      {/* --- NEW: Internal Fraud Alert Dialog --- */}
       <AlertDialog open={showFraudAlert} onOpenChange={setShowFraudAlert}>
         <AlertDialogContent className="max-w-md border-l-4 border-red-500">
           <AlertDialogHeader>

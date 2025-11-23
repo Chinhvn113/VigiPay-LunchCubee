@@ -20,12 +20,10 @@ const PhoneTopup = () => {
   useEffect(() => {
     const prefillData = location.state?.prefill;
     if (prefillData) {
-      // Check for phone number and set it if it exists
       if (prefillData.phone_number) {
         setPhoneNumber(prefillData.phone_number);
       }
       
-      // Check for amount and set it if it exists
       if (prefillData.amount) {
         const numericAmount = Number(prefillData.amount);
         if (amounts.includes(numericAmount)) {
@@ -33,10 +31,9 @@ const PhoneTopup = () => {
         }
       }
 
-      // Show a single toast notification
       toast({
-        title: "Thông báo",
-        description: "Thông tin đã được điền tự động từ lệnh thoại.",
+        title: t('notification'),
+        description: t('autofillFromVoiceCommand'),
       });
     }
   }, [location.state]);

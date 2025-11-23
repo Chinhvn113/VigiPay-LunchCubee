@@ -7,11 +7,10 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score,confus
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-import numpy as np # Import numpy for array manipulation
+import numpy as np 
 
 warnings.filterwarnings('ignore')
 
-# Optional imports for model serialization
 import joblib
 import json
 import os
@@ -52,25 +51,6 @@ def load_feature_columns(path: str = 'feature_columns.json'):
     return feature_columns
 
 
-
-
-
-# loaded = load_model_pt('random_forest.pkl')
-
-# # Proceed only if the model was loaded successfully
-# if loaded:
-#     print("\n--- Smoke Test ---")
-#     sample_X = X_test.iloc[:5]
-#     preds = loaded.predict(sample_X)
-#     print(f"Smoke test predictions (first 5): {preds}")
-#     print(f"Ground truth (first 5): {y_test.iloc[:5].values}")
-#     print("------------------\n")
-
-
-# ==============================================================================
-# UPDATED PREDICT FUNCTION
-# ==============================================================================
-
 def predict(model, feature_data, feature_columns=None):
     """
     Makes a prediction using a loaded model on a single sample.
@@ -90,81 +70,60 @@ def predict(model, feature_data, feature_columns=None):
     Returns:
         dict: {"isFraud": 0 or 1, "probability": float}
     """
-    # The model was trained on a DataFrame with these specific column names.
     if feature_columns is None:
         feature_columns = [
             'step', 'type', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
             'oldbalanceDest', 'newbalanceDest', 'isFlaggedFraud'
         ]
 
-    # Convert dict input to list
     if isinstance(feature_data, dict):
-        # Create a mapping of lowercase keys to their values for easier lookup
         feature_data_lower = {k.lower(): v for k, v in feature_data.items()}
         
         processed_features = []
         for col in feature_columns:
             col_lower = col.lower()
             
-            # Try to find the value in the dict (case-insensitive)
             if col_lower in feature_data_lower:
                 processed_features.append(feature_data_lower[col_lower])
             elif col == 'isFlaggedFraud':
-                # Default to 0 if not provided
                 processed_features.append(0)
             else:
                 raise ValueError(f"Missing required feature: {col}")
     else:
-        # Input is a list
         processed_features = feature_data.copy() if isinstance(feature_data, list) else list(feature_data)
 
-    # If the input has 7 features, add the missing 'isFlaggedFraud' feature (default to 0)
     if len(processed_features) == 7:
         processed_features.append(0)
     elif len(processed_features) != 8:
         raise ValueError(f"Expected 7 or 8 features, but got {len(processed_features)}")
 
-    # --- Check if the 'type' feature (at index 1) is a string and map it ---
     if isinstance(processed_features[1], str):
         type_mapping = {
             'CASH_IN': 0, 'CASH_OUT': 1, 'DEBIT': 2, 'PAYMENT': 3, 'TRANSFER': 4
         }
-        # Get the integer mapping. Convert input to uppercase for case-insensitivity.
-        # If the key is not found, default to 4 ('TRANSFER') as requested.
         str_type = processed_features[1].upper()
         processed_features[1] = type_mapping.get(str_type, 4)
         print(f"Info: Mapped string type to code '{processed_features[1]}'")
 
-    # --- Convert VND to USD by dividing currency fields by 25 ---
-    # The model was trained on USD data, so we need to convert VND amounts
-    # Currency fields: amount (index 2), oldbalanceOrg (3), newbalanceOrig (4), 
-    #                  oldbalanceDest (5), newbalanceDest (6)
     currency_indices = [2, 3, 4, 5, 6]
     for idx in currency_indices:
         if idx < len(processed_features) and processed_features[idx] is not None:
             processed_features[idx] = float(processed_features[idx]) / 25000
             print(f"Info: Converted feature at index {idx} to USD: {processed_features[idx]}")
     print(f"Info: Converted VND to USD by dividing currency fields by 25000")
-    # clean_features = processed_features[:5]
     processed_features[0] = 6
-    # clean_feature_columns = feature_columns[:5] 
-    # Create a DataFrame from the input list
     input_df = pd.DataFrame([processed_features], columns=feature_columns)
 
-    # Make the prediction
     prediction = model.predict(input_df)[0]
     conf_threshold = 0.2
-    # Get probability from predict_proba
     try:
         probabilities = model.predict_proba(input_df)[0]
-        # probabilities[0] = probability of class 0 (safe), probabilities[1] = probability of class 1 (fraud)
         fraud_probability = float(probabilities[1]) if len(probabilities) > 1 else 0.0
     except Exception as e:
         print(f"Warning: Could not get probability: {e}")
         fraud_probability = 0.0
     if fraud_probability >= conf_threshold:
-        prediction = 1  # Override prediction to fraud if above threshold
-    # Return both prediction and probability
+        prediction = 1  
     return {
         "isFraud": int(prediction),
         "probability": fraud_probability
@@ -192,7 +151,7 @@ if __name__ == "__main__":
 
     X = df.drop('isFraud', axis=1)
     y = df['isFraud']
-    X_train,X_test, y_train,y_test = train_test_split(X,y , test_size=0.3, random_state=42) # Added random_state for reproducibility
+    X_train,X_test, y_train,y_test = train_test_split(X,y , test_size=0.3, random_state=42) 
     model = RandomForestClassifier()
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)

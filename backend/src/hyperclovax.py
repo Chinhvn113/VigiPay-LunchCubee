@@ -1,4 +1,3 @@
-# backend/main.py
 import asyncio
 import os
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, status, Form
@@ -25,7 +24,6 @@ import re
 import secrets
 import base64
 
-# Load environment variables from .env file
 import joblib
 import pandas as pd
 import sys
@@ -38,16 +36,11 @@ except ImportError as e:
     load_feature_columns = None
     predict = None
 
-# Load environment variables from .env file
 load_dotenv()
 
 
-# ============================================================================
-# ML MODEL LOADING & PREDICTION FUNCTION
-# ============================================================================
 
 def load_ml_model(path: str):
-    """Loads a serialized machine learning model from the specified path."""
     if not os.path.exists(path):
         print(f"⚠️ WARNING: ML model file not found at {path}. Safety check endpoint will be disabled.")
         return None
@@ -59,20 +52,16 @@ def load_ml_model(path: str):
         print(f"❌ ERROR: Failed to load ML model from {path}: {e}")
         return None
 
-# Load the trained Random Forest model on application startup
-# Ensure 'random_forest.pkl' is in the 'backend' directory.
 fraud_detection_model = None
 feature_columns_cache = None
 
 def get_fraud_detection_model():
-    """Returns the cached fraud detection model, loading it if necessary."""
     global fraud_detection_model
     if fraud_detection_model is None:
         fraud_detection_model = load_ml_model('checkpoints/random_forest.pkl')
     return fraud_detection_model
 
 def get_feature_columns():
-    """Returns the cached feature columns, loading them if necessary."""
     global feature_columns_cache
     if feature_columns_cache is None and load_feature_columns is not None:
         feature_columns_cache = load_feature_columns()
@@ -113,7 +102,6 @@ def predict_transaction_fraud(model, feature_list: list):
     prediction = model.predict(input_df)
     return prediction[0]
 
-# --- Authentication Configuration ---
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     print("⚠️ WARNING: SECRET_KEY not found in .env, using random key (tokens will be invalid after restart!)")
@@ -124,10 +112,8 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./naver_bank.db")
 
 security = HTTPBearer()
-security_optional = HTTPBearer(auto_error=False)  # Optional auth - doesn't raise error if missing
+security_optional = HTTPBearer(auto_error=False)  #
 
-# Database setup
-# PostgreSQL configuration (production-ready with connection pooling)
 engine_kwargs = {
     "pool_pre_ping": True,  # Verify connections before using
     "pool_size": 10,  # Connection pool size
@@ -135,7 +121,6 @@ engine_kwargs = {
     "echo": False  # Set True for SQL query logging
 }
 
-# SQLite specific config (legacy)
 if "sqlite" in DATABASE_URL:
     engine_kwargs = {"connect_args": {"check_same_thread": False}}
 
@@ -149,7 +134,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- Milvus RAG Database Initialization ---
 milvus_host = os.getenv("MILVUS_HOST", "10.0.1.8")
 milvus_port = os.getenv("MILVUS_PORT", "6030")
 milvus_collection_name = os.getenv("MILVUS_COLLECTION_NAME", "scam_check_db")
@@ -165,25 +149,16 @@ except Exception as e:
     print(f"⚠️ Warning: Could not initialize Milvus RAG Database: {e}")
     rag_db = None
 
-# --- CORS Configuration ---
-# This allows your frontend (running on a different port) to communicate with this backend.
-# origins = [
-#     "http://192.168.20.156:7000",
-#     "http://localhost:7000",  # Your React app's URL
-#     # Add other origins if needed, e.g., your production frontend URL
-#     "http://localhost:5173"
-# ]
 origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows POST, OPTIONS, etc.
-    allow_headers=["*"],  # Allows Content-Type, etc.
+    allow_methods=["*"],  
+    allow_headers=["*"],  
 )
 
-# --- HyperCLOVA X Client Initialization ---
 
 client = OpenAI(
     api_key="nv-a851d08d11b84ff18525aa7cd38d138dxBoj",
@@ -195,7 +170,6 @@ CLOVA_OCR_SECRET_KEY = os.getenv("CLOVA_OCR_SECRET_KEY")
 CLOVA_SPEECH_INVOKE_URL = os.getenv("CLOVA_SPEECH_INVOKE_URL")
 CLOVA_SPEECH_SECRET_KEY = os.getenv("CLOVA_SPEECH_SECRET_KEY")
 
-# --- Database Models ---
 class User(Base):
     """User model for authentication"""
     __tablename__ = "users"
@@ -211,7 +185,6 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Relationships
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     bank_accounts = relationship("BankAccount", back_populates="user", cascade="all, delete-orphan")
 
@@ -288,14 +261,14 @@ class TransferTransaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     sender_account_id = Column(Integer, ForeignKey("bank_accounts.id", ondelete="CASCADE"), nullable=False)
-    receiver_account_number = Column(String(50), nullable=False)  # Can be external (mock)
-    receiver_bank = Column(String(50), nullable=False)  # Bank code (vcb, bidv, etc.)
-    receiver_name = Column(String(100), nullable=True)  # Optional receiver name
-    amount = Column(Integer, nullable=False)  # Transfer amount in VND
-    fee = Column(Integer, nullable=False, default=0)  # Transaction fee
-    fee_payer = Column(String(10), nullable=False, default="sender")  # "sender" or "receiver"
+    receiver_account_number = Column(String(50), nullable=False)  
+    receiver_bank = Column(String(50), nullable=False)  
+    receiver_name = Column(String(100), nullable=True)  
+    amount = Column(Integer, nullable=False)  
+    fee = Column(Integer, nullable=False, default=0)  
+    fee_payer = Column(String(10), nullable=False, default="sender")  
     description = Column(String(255), nullable=False)
-    status = Column(String(20), nullable=False, default="completed")  # "pending", "completed", "failed"
+    status = Column(String(20), nullable=False, default="completed")  
     transaction_date = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -312,13 +285,11 @@ class SavingsGoal(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     account_id = Column(Integer, ForeignKey("bank_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    # Goal details
     name = Column(String(100), nullable=False)
     target_amount = Column(Float, nullable=False)
     allocated_amount = Column(Float, nullable=False, default=0)
     color = Column(String(20), nullable=False, default="bg-blue-500")
     
-    # Metadata
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -327,7 +298,7 @@ class SavingsGoal(Base):
         return f"<SavingsGoal(id={self.id}, name='{self.name}', user_id={self.user_id}, account_id={self.account_id})>"
 
 
-# --- Utility Functions ---
+ 
 def generate_account_number(db: Session) -> str:
     """Generate unique 10-digit account number"""
     import random
@@ -362,7 +333,7 @@ def init_db():
 init_db()
 
 
-# --- Database Dependency ---
+ 
 def get_db():
     db = SessionLocal()
     try:
@@ -371,7 +342,7 @@ def get_db():
         db.close()
 
 
-# --- Authentication Utilities ---
+ 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hashed password using bcrypt"""
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
@@ -494,7 +465,7 @@ async def get_current_user_optional(
         return None
 
 
-# --- Pydantic Schemas ---
+ 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
@@ -563,7 +534,7 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
-# --- Existing Pydantic Models ---
+ 
 class ImageContent(BaseModel):
     """Image content with base64 encoded data"""
     type: str = "image_url"
@@ -1202,7 +1173,6 @@ async def call_clova_ocr_api(image_data: bytes, filename: str) -> dict:
         )
 
 async def call_clova_speech_api(audio_data: bytes) -> dict:
-    """Hàm này gọi đến Clova Speech API để chuyển đổi âm thanh thành văn bản."""
     if not CLOVA_SPEECH_INVOKE_URL or not CLOVA_SPEECH_SECRET_KEY:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1213,14 +1183,12 @@ async def call_clova_speech_api(audio_data: bytes) -> dict:
         "Content-Type": "application/octet-stream",
         "X-CLOVASPEECH-API-KEY": CLOVA_SPEECH_SECRET_KEY
     }
-    # Sử dụng "Eng" cho tiếng Anh như trong file test.
     params = {"lang": "Eng"} 
 
     try:
-        # Dùng httpx để gửi yêu cầu bất đồng bộ
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(CLOVA_SPEECH_INVOKE_URL, headers=headers, params=params, data=audio_data)
-            response.raise_for_status() # Báo lỗi nếu status code là 4xx hoặc 5xx
+            response.raise_for_status() 
             return response.json()
     except httpx.HTTPStatusError as e:
         print(f"Lỗi HTTP từ Clova Speech API: {e.response.status_code} - {e.response.text}")
@@ -1235,7 +1203,6 @@ async def call_clova_speech_api(audio_data: bytes) -> dict:
             detail=f"Lỗi server nội bộ khi nhận dạng giọng nói: {e}"
         )
 
-# --- API Endpoint (MODIFIED FOR STREAMING) ---
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
     """
@@ -1250,7 +1217,6 @@ async def chat_endpoint(request: ChatRequest):
     """
     message_dicts = [msg.model_dump() for msg in request.messages]
     
-    # Get the last user message for intent detection
     last_user_message = None
     last_user_message_obj = None
     for msg in reversed(message_dicts):
@@ -1277,9 +1243,7 @@ async def chat_endpoint(request: ChatRequest):
         return StreamingResponse(stream_transfer_notification(last_user_message, transfer_details), media_type="text/event-stream")
     elif intent == "TopUp":
         print("💰 Routing to Phone TopUp Flow (Defaulting to Normal Chat for now)...")
-        # For now, since we don't have a dedicated /topup endpoint, 
-        # we treat it as a normal chat request, perhaps asking the user to use the dedicated UI.
-        pass # Fall through to "Normal" routing below
+        pass 
     else:
         print("💬 Routing to Normal Chat...")
         # Regular chat
@@ -1289,7 +1253,6 @@ async def chat_endpoint(request: ChatRequest):
         return StreamingResponse(stream_generator(message_dicts), media_type="text/event-stream")
 
 
-# --- Embedding Endpoint ---
 @app.post("/api/embeddings", response_model=EmbeddingResponse)
 async def embeddings_endpoint(request: EmbeddingRequest):
     """
@@ -1305,14 +1268,12 @@ async def embeddings_endpoint(request: EmbeddingRequest):
     try:
         print(f"Generating embeddings for text: {request.text[:50]}...")
         
-        # Call HyperClovaX embeddings API
         response = client.embeddings.create(
             model=request.model,
             input=request.text,
-            encoding_format="float"  # Must be set when using embedding with OpenAI SDK
+            encoding_format="float"  
         )
         
-        # Extract the embedding from the response
         embedding = response.data[0].embedding
         
         print(f"✅ Embeddings generated successfully. Dimension: {len(embedding)}")
@@ -1330,7 +1291,6 @@ async def embeddings_endpoint(request: EmbeddingRequest):
         )
 
 
-# --- Scam Check Endpoint ---
 @app.post("/api/scam-check", response_model=ScamCheckResponse)
 async def scam_check_endpoint(request: ScamCheckRequest):
     """
@@ -1356,7 +1316,6 @@ async def scam_check_endpoint(request: ScamCheckRequest):
         with open(prompt_path, 'r', encoding='utf-8') as f:
             system_prompt = f.read()
         
-        # Retrieve relevant knowledge base context using RAG
         rag_context = ""
         if rag_db:
             try:
@@ -1373,7 +1332,6 @@ async def scam_check_endpoint(request: ScamCheckRequest):
             except Exception as e:
                 print(f"⚠️ Warning: Could not retrieve RAG context: {e}")
         
-        # Prepare messages with RAG context
         user_message = request.input + rag_context if rag_context else request.input
         
         messages = [
@@ -1381,7 +1339,6 @@ async def scam_check_endpoint(request: ScamCheckRequest):
             {"role": "user", "content": [{"type": "text", "text": user_message}]}
         ]
         
-        # Call the API with non-streaming mode for scam check
         response = client.chat.completions.create(
             model="HCX-005",
             messages=messages,
@@ -1404,7 +1361,7 @@ async def scam_check_endpoint(request: ScamCheckRequest):
             print(f"⚠️ Unexpected verdict format: {verdict}")
             return ScamCheckResponse(
                 success=True,
-                verdict=verdict  # Return as-is if format is unexpected
+                verdict=verdict  
             )
     
     except Exception as e:
@@ -2205,7 +2162,6 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user account
     """
-    # Check if username exists
     existing_user = db.query(User).filter(User.username == user_data.username.lower()).first()
     if existing_user:
         raise HTTPException(
@@ -2213,7 +2169,6 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Username already registered"
         )
     
-    # Check if email exists
     existing_email = db.query(User).filter(User.email == user_data.email).first()
     if existing_email:
         raise HTTPException(
@@ -2221,7 +2176,6 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
-    # Create new user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         username=user_data.username.lower(),
@@ -2234,14 +2188,13 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    # 🆕 AUTO-CREATE DEFAULT BANK ACCOUNT WITH 500,000 VND
     try:
         account_number = generate_account_number(db)
         default_account = BankAccount(
             user_id=new_user.id,
             account_number=account_number,
             account_type="main",
-            balance=20000000,  # Initial balance: 20,000,000 VND
+            balance=20000000,  
             currency="VND",
             is_active=True
         )
@@ -2251,10 +2204,8 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         print(f"✅ Created default bank account {account_number} for user {new_user.username} with 500,000 VND")
     except Exception as e:
         print(f"⚠️ Warning: Failed to create default bank account: {e}")
-        # Don't fail registration if account creation fails
         db.rollback()
     
-    # Generate tokens
     token_data = {
         "sub": str(new_user.id),
         "username": new_user.username,
@@ -2263,7 +2214,6 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     access_token = create_access_token(token_data)
     refresh_token_str = create_refresh_token({"sub": str(new_user.id)})
     
-    # Store refresh token
     refresh_token_obj = RefreshToken(
         user_id=new_user.id,
         token=refresh_token_str,
@@ -2289,7 +2239,6 @@ async def login(
     """
     Login with username/email and password (OAuth2 compatible form)
     """
-    # Find user by username or email
     user = db.query(User).filter(
         (User.username == username.lower()) | 
         (User.email == username)
@@ -2301,21 +2250,18 @@ async def login(
             detail="Incorrect username or password"
         )
     
-    # Verify password
     if not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password"
         )
     
-    # Check if active
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
     
-    # Generate tokens
     token_data = {
         "sub": str(user.id),
         "username": user.username,
@@ -2324,7 +2270,6 @@ async def login(
     access_token = create_access_token(token_data)
     refresh_token_str = create_refresh_token({"sub": str(user.id)})
     
-    # Store refresh token
     refresh_token_obj = RefreshToken(
         user_id=user.id,
         token=refresh_token_str,
@@ -2385,7 +2330,6 @@ async def refresh_access_token(
     
     user_id = int(user_id_str)
     
-    # Check if refresh token exists in database
     refresh_token_obj = db.query(RefreshToken).filter(
         RefreshToken.token == refresh_data.refresh_token,
         RefreshToken.user_id == user_id
@@ -2397,7 +2341,6 @@ async def refresh_access_token(
             detail="Refresh token not found or revoked"
         )
     
-    # Check expiration
     now = datetime.now(timezone.utc) if refresh_token_obj.expires_at.tzinfo else datetime.utcnow()
     if refresh_token_obj.expires_at < now:
         db.delete(refresh_token_obj)
@@ -2407,7 +2350,6 @@ async def refresh_access_token(
             detail="Refresh token expired"
         )
     
-    # Get user
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.is_active:
         raise HTTPException(
@@ -2415,7 +2357,6 @@ async def refresh_access_token(
             detail="User not found or inactive"
         )
     
-    # Generate new access token
     new_token_data = {
         "sub": str(user.id),
         "username": user.username,
@@ -2460,17 +2401,14 @@ async def debug_token(credentials: HTTPAuthorizationCredentials = Depends(securi
         if payload:
             return {"status": "valid", "payload": payload}
         else:
-            # Try to decode without verification
             import base64
             import json
             payload_part = token.split('.')[1]
-            # Add padding if needed
             padding = 4 - len(payload_part) % 4
             if padding != 4:
                 payload_part += '=' * padding
             decoded_payload = json.loads(base64.b64decode(payload_part))
             
-            # Try to manually decode with SECRET_KEY
             try:
                 manual_decode = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
                 return {"status": "manual_decode_success", "payload": manual_decode}
@@ -2480,9 +2418,6 @@ async def debug_token(credentials: HTTPAuthorizationCredentials = Depends(securi
         return {"status": "error", "error": str(e)}
 
 
-# ============================================================================
-# BANK ACCOUNT ENDPOINTS
-# ============================================================================
 
 @app.get("/api/accounts", response_model=List[BankAccountResponse])
 async def get_user_accounts(
@@ -2646,7 +2581,6 @@ async def unified_analyze_endpoint(
     extracted_text = ""
     source_type = "text" # or "image"
 
-    # --- STEP 1: INPUT PROCESSING & OCR ---
     if image:
         print(f"📷 Analyzing image upload: {image.filename}")
         source_type = "image"
@@ -2679,8 +2613,6 @@ async def unified_analyze_endpoint(
     else:
         raise HTTPException(status_code=400, detail="No text or image provided.")
 
-    # --- STEP 2: INTENT CLASSIFICATION ---
-    # We ask Clova to decide what this text represents.
     
     classification_prompt = (
         "You are a routing assistant. Analyze the user input below.\n"
@@ -2713,9 +2645,6 @@ async def unified_analyze_endpoint(
         intent = "SCAM_CHECK"
 
 
-    # --- STEP 3: EXECUTION BASED ON INTENT ---
-
-    # === CASE A: BILL / RECEIPT ===
     if intent == "BILL":
         try:
             # Reuse receipt extraction logic prompt
@@ -2762,16 +2691,13 @@ async def unified_analyze_endpoint(
             print(f"❌ Bill processing error: {e}")
             return {"category": "ERROR", "message": "Identified as bill, but failed to extract data."}
 
-    # === CASE B: SCAM CHECK ===
     elif intent == "SCAM_CHECK":
-        # Reuse Scam Check Logic
         prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "scamcheck.txt")
         system_prompt = "Analyze if this is a scam."
         if os.path.exists(prompt_path):
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 system_prompt = f.read()
 
-        # Simple RAG retrieval (optional, keeping it light for speed)
         rag_context = ""
         if rag_db:
              results = await rag_db.search(extracted_text, top_k=2)
@@ -2796,7 +2722,6 @@ async def unified_analyze_endpoint(
             "ocr_text": extracted_text if source_type == "image" else None
         }
 
-    # === CASE C: NORMAL CHAT ===
     else:
         chat_response = client.chat.completions.create(
             model="HCX-005",
@@ -2814,9 +2739,6 @@ async def unified_analyze_endpoint(
             "reply": reply
         }
 
-# ============================================================================
-# TRANSFER TRANSACTION ENDPOINTS
-# ============================================================================
 
 @app.post("/api/transfers", response_model=TransferResponse, status_code=status.HTTP_201_CREATED)
 async def create_transfer(
@@ -2869,10 +2791,8 @@ async def create_transfer(
             detail="Sender account is not active"
         )
     
-    # 2. Calculate fee
     fee = calculate_transfer_fee(transfer_data.amount)
     
-    # 3. Check balance (amount + fee if sender pays)
     total_deduction = transfer_data.amount + fee if transfer_data.fee_payer == "sender" else transfer_data.amount
     
     if sender_account.balance < total_deduction:
@@ -2881,12 +2801,9 @@ async def create_transfer(
             detail=f"Insufficient balance. Available: {sender_account.balance:,} VND, Required: {total_deduction:,} VND"
         )
     
-    # 4. Begin database transaction
     try:
-        # Deduct from sender account
         sender_account.balance -= total_deduction
         
-        # Create transfer transaction record
         new_transfer = TransferTransaction(
             sender_account_id=sender_account.id,
             receiver_account_number=transfer_data.receiver_account_number,
@@ -2901,9 +2818,8 @@ async def create_transfer(
         )
         
         db.add(new_transfer)
-        db.flush()  # Get transfer ID
+        db.flush()  
         
-        # Create Transaction record for transfer amount (expense)
         transfer_transaction = Transaction(
             user_id=current_user.id,
             account_id=sender_account.id,
@@ -2915,7 +2831,6 @@ async def create_transfer(
         )
         db.add(transfer_transaction)
         
-        # Create Transaction record for fee (if sender pays)
         if transfer_data.fee_payer == "sender" and fee > 0:
             fee_transaction = Transaction(
                 user_id=current_user.id,
@@ -2928,7 +2843,6 @@ async def create_transfer(
             )
             db.add(fee_transaction)
         
-        # Commit all changes
         db.commit()
         db.refresh(new_transfer)
         
@@ -2995,9 +2909,9 @@ async def get_user_transfers(
 
 @app.post("/api/extract-transfer-details", response_model=TransferDetailsResponse)
 async def extract_transfer_details_from_image(
-    file: UploadFile = File(...), # Changed name from 'image' to 'file' for generality
+    file: UploadFile = File(...), 
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db) # Keep DB dependency if needed for logging/user validation
+    db: Session = Depends(get_db) 
 ):
     """
     Handles file uploads (Image or Audio) to extract structured transfer details.
@@ -3011,7 +2925,6 @@ async def extract_transfer_details_from_image(
         file_data = await file.read()
         extracted_text = ""
         
-        # 1. Determine file type and extract text
         file_content_type = file.content_type.lower()
         
         if file_content_type.startswith('image/'):
@@ -3028,7 +2941,6 @@ async def extract_transfer_details_from_image(
 
         elif file_content_type.startswith('audio/'):
             print("🎙️ Processing as Audio via Clova Speech.")
-            # Use Clova Speech API to transcribe audio
             speech_result = await call_clova_speech_api(file_data)
             extracted_text = speech_result.get("text", "").strip()
         
@@ -3040,7 +2952,6 @@ async def extract_transfer_details_from_image(
         if not extracted_text:
             raise HTTPException(status_code=400, detail="No discernible text found in the file.")
 
-        # 2. Use CLOVA Studio with the extraction prompt
         prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "transfer_extractor.txt")
         if not os.path.exists(prompt_path):
              raise HTTPException(status_code=500, detail="Transfer extractor prompt not found on server.")
@@ -3048,7 +2959,6 @@ async def extract_transfer_details_from_image(
         with open(prompt_path, 'r', encoding='utf-8') as f:
             system_prompt = f.read()
 
-        # Note: We use the simple prompt format here, assuming transfer_extractor.txt expects this style.
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": extracted_text}]
 
         response = client.chat.completions.create(
@@ -3057,7 +2967,6 @@ async def extract_transfer_details_from_image(
         ai_response_content = response.choices[0].message.content.strip()
         print(f"🤖 AI Transfer Extraction Response: {ai_response_content}")
 
-        # 3. Parse the JSON response from the AI and return it
         try:
             cleaned_json_str = ai_response_content.strip('` \n').replace("json", "").strip()
             data = json.loads(cleaned_json_str)
@@ -3071,9 +2980,6 @@ async def extract_transfer_details_from_image(
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 
 
-# ============================================================================
-# SAVINGS GOALS ENDPOINTS
-# ============================================================================
 
 @app.get("/api/savings-goals/", response_model=List[SavingsGoalResponse])
 async def get_all_savings_goals(

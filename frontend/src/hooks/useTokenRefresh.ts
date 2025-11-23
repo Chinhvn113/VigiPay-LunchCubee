@@ -10,25 +10,21 @@ export const useTokenRefresh = () => {
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Only set up refresh timer if user is authenticated
     if (!isAuthenticated || !accessToken) {
       return;
     }
 
-    // Clear any existing timer
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
 
-    // Decode JWT to get expiration time
     try {
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      const expiresAt = payload.exp * 1000; // Convert to milliseconds
+      const expiresAt = payload.exp * 1000;
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
 
-      // Refresh 1 minute before expiry (15 min - 1 min = 14 min = 840000 ms)
-      const refreshTime = timeUntilExpiry - 60000; // 60000 ms = 1 minute
+      const refreshTime = timeUntilExpiry - 60000;
 
       if (refreshTime > 0) {
         console.log(`Token will be refreshed in ${Math.round(refreshTime / 1000)} seconds`);
@@ -43,7 +39,6 @@ export const useTokenRefresh = () => {
           }
         }, refreshTime);
       } else {
-        // Token is already expired or will expire very soon, refresh immediately
         console.log('Token expired or expiring soon, refreshing now...');
         refreshAccessToken().catch(console.error);
       }
@@ -51,7 +46,6 @@ export const useTokenRefresh = () => {
       console.error('Failed to decode token:', error);
     }
 
-    // Cleanup timer on unmount
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);

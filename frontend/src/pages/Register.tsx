@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/useToast";
 import { Eye, EyeOff, CreditCard, Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { useLanguage } from "@/i18n/LanguageContext"; // Import hook
+import { useLanguage } from "@/i18n/LanguageContext"; 
 
 const Register = () => {
-  const { t } = useLanguage(); // Use hook
+  const { t } = useLanguage(); 
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -32,7 +32,6 @@ const Register = () => {
   const { register } = useAuth();
   const { toast } = useToast();
 
-  // Real-time password validation
   const validatePassword = (password: string) => {
     setValidations({
       minLength: password.length >= 8,
@@ -42,22 +41,18 @@ const Register = () => {
     });
   };
 
-  // Handle input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
-    // Real-time password validation
     if (name === "password") {
       validatePassword(value);
     }
 
-    // Real-time confirm password validation
     if (name === "confirmPassword" && formData.password) {
       if (value !== formData.password) {
         setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match" }));
@@ -67,7 +62,6 @@ const Register = () => {
     }
   };
 
-  // Validate form
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -106,7 +100,6 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -134,7 +127,6 @@ const Register = () => {
         description: t('welcomeMsg'),
       });
 
-      // Redirect to home page
       navigate("/");
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -213,7 +205,7 @@ const Register = () => {
             )}
           </div>
 
-          {/* Full Name (Optional) */}
+          {/* Full Name */}
           <div className="space-y-2">
             <Label htmlFor="fullName" className="text-sm md:text-base">
               {t('fullName')} <span className="text-muted-foreground text-xs">{t('optional')}</span>

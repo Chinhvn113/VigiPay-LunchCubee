@@ -55,7 +55,6 @@ const ChatInputBar = ({
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       
-      // Check if the pasted item is an image
       if (item.kind === 'file' && item.type.startsWith('image/')) {
         e.preventDefault();
         const file = item.getAsFile();
@@ -145,7 +144,7 @@ const ChatInputBar = ({
 
   return (
     <div className="flex flex-col gap-0 w-full max-w-4xl mx-auto">
-      {/* Hidden File Input - Must be rendered in DOM */}
+      {/* Hidden File Input */}
       <input
         ref={fileInputRef} 
         type="file"
@@ -154,7 +153,7 @@ const ChatInputBar = ({
         style={{ display: 'none' }}
       />
       
-      {/* Input Bar with inline image thumbnail */}
+      {/* Input Bar */}
       <div className="relative flex items-center w-full bg-muted rounded-full shadow-lg">
         <Input
           ref={inputRef}
@@ -227,8 +226,8 @@ const AIChat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null); // Base64 image
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // For UI preview
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); 
+  const [imagePreview, setImagePreview] = useState<string | null>(null); 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isNewChat = messages.length <= 1;
 
@@ -252,19 +251,17 @@ const AIChat = () => {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
+e
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file');
       return;
     }
 
-    // Read file as base64
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64String = event.target?.result as string;
       setSelectedImage(base64String);
-      setImagePreview(base64String); // For showing preview
+      setImagePreview(base64String); 
       console.log('📸 Image selected, size:', file.size);
     };
     reader.readAsDataURL(file);
@@ -293,7 +290,6 @@ const AIChat = () => {
     setIsTyping(true);
 
     try {
-      // Format messages for API - include image data
       const formattedMessages = historyForAPI.map(msg => ({
         role: msg.role,
         content: msg.content,
@@ -328,7 +324,6 @@ const AIChat = () => {
           if (line.startsWith('data: ')) {
             const data = line.substring(6);
             
-            // Check if this is a transfer data block
             if (data.includes('<<<TRANSFER_DATA>>>')) {
               const jsonStart = data.indexOf('{');
               const jsonEnd = data.lastIndexOf('}') + 1;
@@ -355,7 +350,6 @@ const AIChat = () => {
 
       if (transferData && transferData.type === 'TRANSFER_INTENT') {
         console.log("🔄 Transfer data detected:", transferData);
-        // Wait a moment for the message to display, then navigate
         setTimeout(() => {
           const stateData = {
             account_number: transferData.account_number || null,

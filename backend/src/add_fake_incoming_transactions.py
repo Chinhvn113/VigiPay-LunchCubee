@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-"""
-Add 15 fake incoming transactions to camkhonghat account for fraud demo
-"""
 import os
 import sys
 from datetime import datetime, timedelta, timezone
@@ -26,7 +22,7 @@ def add_fake_incoming_transactions():
         if not account:
             print("❌ Bank account for camkhonghat not found!")
             return
-        amount = 5000000  # 5M VND
+        amount = 5000000  
         description = "Nhan tien scam demo"
         base_time = datetime.now(timezone.utc)
         for i in range(15):
@@ -40,7 +36,6 @@ def add_fake_incoming_transactions():
                 transaction_date=transaction_date
             )
             db.add(transaction)
-            # Update account balance
             account.balance += amount
         db.commit()
         print(f"✅ Added 15 fake incoming transactions to account {account.account_number} (new balance: {account.balance:,} VND)")

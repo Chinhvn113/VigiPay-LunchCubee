@@ -25,10 +25,6 @@ const Step = ({ stepNumber, label, currentStep }: StepProps) => {
   );
 };
 
-/**
- * A 3-step progress header for the transaction flow.
- * @param currentStep - The current active step (1, 2, or 3).
- */
 export const TransactionProgressHeader = ({ currentStep }: { currentStep: 1 | 2 | 3 }) => {
   const { t } = useLanguage();
 

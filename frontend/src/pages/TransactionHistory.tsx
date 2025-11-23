@@ -23,7 +23,6 @@ interface Transaction {
   transfer_id?: number;
 }
 
-// Helper to check if transaction is incoming
 const isIncomeTransaction = (type: string): boolean => {
   return type === 'income' || type === 'transfer_in';
 };
@@ -34,10 +33,8 @@ const TransactionHistory = () => {
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   
-  // Fetch accounts for filter
   const { data: accounts } = useBankAccounts();
   
-  // Fetch transactions from /api/transactions
   const { data: transactions, isLoading, isError, error } = useQuery<Transaction[]>({
     queryKey: ['transactions'],
     queryFn: async () => {
@@ -66,7 +63,6 @@ const TransactionHistory = () => {
     }).format(date);
   };
 
-  // Helper function to render the main content based on the query state
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -88,12 +84,10 @@ const TransactionHistory = () => {
 
     // Filter transactions
     const filteredTransactions = transactions?.filter(txn => {
-      // Filter by account if selected
       if (selectedAccountId && txn.account_id !== selectedAccountId) {
         return false;
       }
       
-      // Filter by type
       if (filter === 'income') {
         return isIncomeTransaction(txn.type);
       } else if (filter === 'expense') {
@@ -123,7 +117,6 @@ const TransactionHistory = () => {
     return (
       <div className="space-y-4">
         {filteredTransactions.map((transaction) => {
-          // Determine if this is income or expense
           const isIncome = isIncomeTransaction(transaction.type);
           
           return (

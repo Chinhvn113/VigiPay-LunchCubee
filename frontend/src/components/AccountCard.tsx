@@ -17,12 +17,10 @@ export const AccountCard = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   
-  // Fetch real bank accounts
   const { data: accounts, isLoading, error } = useBankAccounts();
 
   const currentAccount = accounts?.[currentAccountIndex];
   
-  // Helper function to get account type display name
   const getAccountTypeName = (type: string) => {
     const typeMap: Record<string, string> = {
       'main': t('mainAccount') || 'Main Account',
@@ -34,17 +32,14 @@ export const AccountCard = () => {
 
   const handlePreviousAccount = () => {
     if (isTransitioning || !accounts) return;
-    setDirection('left'); // Going to previous = swipe right
+    setDirection('left'); 
     setIsTransitioning(true);
     setTransitionPhase('exit');
-    
-    // Phase 1: Exit animation (current card slides out to right)
-    setTimeout(() => {
+        setTimeout(() => {
       setCurrentAccountIndex((prevIndex) => (prevIndex === 0 ? accounts.length - 1 : prevIndex - 1));
       setTransitionPhase('enter');
     }, 150);
     
-    // Phase 2: Enter animation (new card slides in from left)
     setTimeout(() => {
       setIsTransitioning(false);
       setTransitionPhase('idle');
@@ -53,24 +48,21 @@ export const AccountCard = () => {
 
   const handleNextAccount = () => {
     if (isTransitioning || !accounts) return;
-    setDirection('right'); // Going to next = swipe left
+    setDirection('right'); 
     setIsTransitioning(true);
     setTransitionPhase('exit');
     
-    // Phase 1: Exit animation (current card slides out to left)
     setTimeout(() => {
       setCurrentAccountIndex((prevIndex) => (prevIndex === accounts.length - 1 ? 0 : prevIndex + 1));
       setTransitionPhase('enter');
     }, 150);
     
-    // Phase 2: Enter animation (new card slides in from right)
     setTimeout(() => {
       setIsTransitioning(false);
       setTransitionPhase('idle');
     }, 300);
   };
   
-  // Loading state
   if (isLoading) {
     return (
       <div className="glass-card rounded-2xl p-6 space-y-6">
@@ -81,7 +73,6 @@ export const AccountCard = () => {
     );
   }
   
-  // Error state
   if (error) {
     return (
       <div className="glass-card rounded-2xl p-6 space-y-6">
@@ -92,11 +83,9 @@ export const AccountCard = () => {
     );
   }
   
-  // No accounts state
   if (!accounts || accounts.length === 0) {
     return (
       <div className="glass-card rounded-2xl p-6 space-y-6">
-        {/* CHANGED: Updated title to 'Your Account' */}
         <h3 className="text-xl font-semibold text-foreground">{t('yourAccount') || 'Your Account'}</h3>
         <div className="text-center py-8">
           <p className="text-muted-foreground mb-4">{t('noAccounts') || 'No accounts found'}</p>
@@ -115,7 +104,6 @@ export const AccountCard = () => {
   return (
     <div className="glass-card rounded-2xl p-6 space-y-6">
       <div className="flex items-center justify-between">
-        {/* CHANGED: Updated title to 'Your Account' to be generic for all slides */}
         <h3 className="text-xl font-semibold text-foreground">{t('yourAccount') || 'Your Account'}</h3>
         <div className="flex items-center gap-2">
           <Button 
@@ -139,18 +127,17 @@ export const AccountCard = () => {
         </div>
       </div>
       
-      {/* Account Info */}
       <div 
         className={`glass-card rounded-xl p-6 space-y-4 border border-accent-green/30 transition-all duration-150 ease-out ${
           transitionPhase === 'exit'
             ? direction === 'right'
-              ? 'opacity-0 -translate-x-8' // Exit left when going next
-              : 'opacity-0 translate-x-8'   // Exit right when going previous
+              ? 'opacity-0 -translate-x-8' 
+              : 'opacity-0 translate-x-8'   
             : transitionPhase === 'enter'
             ? direction === 'right'
-              ? 'opacity-0 translate-x-8'   // Enter from right when going next
-              : 'opacity-0 -translate-x-8'  // Enter from left when going previous
-            : 'opacity-100 translate-x-0'   // Idle state
+              ? 'opacity-0 translate-x-8'   
+              : 'opacity-0 -translate-x-8'  
+            : 'opacity-100 translate-x-0'   
         }`}
       >
         <div className="flex items-center justify-between">
@@ -210,7 +197,6 @@ export const AccountCard = () => {
         </div>
       </div>
       
-      {/* Pagination Dots - Show only if multiple accounts */}
       {accounts.length > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
           {accounts.map((_, index) => (
@@ -222,13 +208,11 @@ export const AccountCard = () => {
                   setIsTransitioning(true);
                   setTransitionPhase('exit');
                   
-                  // Phase 1: Exit animation
                   setTimeout(() => {
                     setCurrentAccountIndex(index);
                     setTransitionPhase('enter');
                   }, 150);
                   
-                  // Phase 2: Enter animation
                   setTimeout(() => {
                     setIsTransitioning(false);
                     setTransitionPhase('idle');

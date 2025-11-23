@@ -40,7 +40,6 @@ const Login = () => {
         description: t('welcomeBackMsg'),
       });
       
-      // Redirect to home page
       navigate("/");
     } catch (error: any) {
       console.error("Login error:", error);
@@ -57,7 +56,6 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
-        {/* Logo/Brand */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-green/20 mb-4">
             <CreditCard className="w-8 h-8 text-accent-green" />
@@ -68,7 +66,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="glass-card rounded-2xl p-8 space-y-6">
           <div className="space-y-2">
             <Label htmlFor="username">{t('username')}</Label>
@@ -85,12 +82,6 @@ const Login = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">{t('password')}</Label>
-              {/* <Link 
-                to="/forgot-password" 
-                className="text-xs text-accent-green hover:underline"
-              >
-                {t('forgotPassword')}
-              </Link> */}
             </div>
             <div className="relative">
               <Input

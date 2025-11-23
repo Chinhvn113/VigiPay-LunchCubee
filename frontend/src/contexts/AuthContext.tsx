@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Types
 interface User {
   id: number;
   username: string;
@@ -26,10 +25,8 @@ interface AuthContextType {
   updateAvatar: (avatarData: string) => void;
 }
 
-// Create Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider Component
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -38,7 +35,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-  // Initialize auth state from localStorage
   useEffect(() => {
     const initAuth = async () => {
       const storedAccessToken = localStorage.getItem('accessToken');
@@ -50,7 +46,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setRefreshToken(storedRefreshToken);
         setUser(JSON.parse(storedUser));
         
-        // Verify token is still valid
         await checkAuth();
       } else {
         setIsLoading(false);
@@ -60,7 +55,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initAuth();
   }, []);
 
-  // Auto refresh token before expiry
   useEffect(() => {
     if (!user || !accessToken) {
       return;
@@ -69,14 +63,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let refreshTimer: NodeJS.Timeout | null = null;
 
     try {
-      // Decode JWT to get expiration time
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      const expiresAt = payload.exp * 1000; // Convert to milliseconds
+      const expiresAt = payload.exp * 1000; 
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
 
-      // Refresh 1 minute before expiry
-      const refreshTime = timeUntilExpiry - 60000; // 60000 ms = 1 minute
+      const refreshTime = timeUntilExpiry - 60000; 
 
       if (refreshTime > 0) {
         refreshTimer = setTimeout(async () => {
@@ -87,7 +79,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }, refreshTime);
       } else {
-        // Token expired or expiring soon, refresh immediately
         refreshAccessToken().catch(console.error);
       }
     } catch (error) {
@@ -101,7 +92,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [accessToken, user]);
 
-  // Login function
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
@@ -130,13 +120,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const data = await response.json();
       
-      // Store tokens
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);
       localStorage.setItem('accessToken', data.access_token);
       localStorage.setItem('refreshToken', data.refresh_token);
 
-      // Get user info
       await getCurrentUser(data.access_token);
     } catch (error) {
       console.error('Login error:', error);
@@ -146,7 +134,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Register function
   const register = async (
     username: string,
     email: string,
@@ -175,13 +162,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const data = await response.json();
       
-      // Store tokens
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);
       localStorage.setItem('accessToken', data.access_token);
       localStorage.setItem('refreshToken', data.refresh_token);
 
-      // Set user info from response
       setUser(data.user);
       localStorage.setItem('user', JSON.stringify(data.user));
     } catch (error) {
@@ -192,7 +177,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       if (accessToken) {
@@ -206,7 +190,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear state and localStorage
       setUser(null);
       setAccessToken(null);
       setRefreshToken(null);
@@ -216,7 +199,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Get current user info
   const getCurrentUser = async (token?: string) => {
     const authToken = token || accessToken;
     if (!authToken) return;
@@ -238,12 +220,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
       console.error('Get user error:', error);
-      // If token is invalid, logout
       await logout();
     }
   };
 
-  // Refresh access token
   const refreshAccessToken = async () => {
     if (!refreshToken) {
       throw new Error('No refresh token available');
@@ -266,20 +246,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const data = await response.json();
       
-      // Update access token
       setAccessToken(data.access_token);
       localStorage.setItem('accessToken', data.access_token);
       
       return data.access_token;
     } catch (error) {
       console.error('Refresh token error:', error);
-      // If refresh fails, logout
       await logout();
       throw error;
     }
   };
 
-  // Check authentication status
   const checkAuth = async () => {
     setIsLoading(true);
     try {
@@ -292,7 +269,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Update avatar (localStorage-based for now, can be replaced with API call later)
   const updateAvatar = (avatarData: string) => {
     if (user) {
       const updatedUser = { ...user, avatar_url: avatarData };
@@ -302,7 +278,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Load avatar from localStorage on user load
   useEffect(() => {
     if (user && !user.avatar_url) {
       const savedAvatar = localStorage.getItem(`avatar_${user.id}`);
@@ -329,7 +304,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

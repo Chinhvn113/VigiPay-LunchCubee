@@ -9,17 +9,14 @@ export const ScrollProgress = () => {
       const documentHeight = document.documentElement.scrollHeight;
       const scrollTop = window.scrollY;
       
-      // Calculate scroll percentage
       const scrollableHeight = documentHeight - windowHeight;
       const progress = scrollableHeight > 0 ? (scrollTop / scrollableHeight) * 100 : 0;
       
       setScrollProgress(progress);
     };
 
-    // Initial call
     handleScroll();
 
-    // Add scroll listener
     window.addEventListener("scroll", handleScroll, { passive: true });
     
     return () => {

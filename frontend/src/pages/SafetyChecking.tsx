@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Helper to format currency for display
+
 const formatCurrency = (value: string) => {
   if (!value) return '';
   const numberValue = parseInt(value.replace(/,/g, ''), 10);
@@ -45,13 +45,11 @@ const SafetyChecking = () => {
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isAiChecking, setIsAiChecking] = useState(false); // State for AI-specific processing
+  const [isAiChecking, setIsAiChecking] = useState(false); 
   const [isDragging, setIsDragging] = useState(false);
   
-  // State for the real-time transcript display
   const [voiceTranscript, setVoiceTranscript] = useState("");
   
-  // State for fraud alert dialog
   const [showFraudAlert, setShowFraudAlert] = useState(false);
   const [fraudMessage, setFraudMessage] = useState("");
   const [fraudImageData, setFraudImageData] = useState<string | null>(null);
@@ -63,33 +61,25 @@ const SafetyChecking = () => {
 
   const { data: userAccounts, isLoading: accountsLoading } = useBankAccounts();
 
-  // --- VOICE HANDLER ---
   const handleVoiceSuccess = (data: any) => {
     if (data.transcript) {
       setVoiceTranscript(data.transcript);
     }
 
-    // Check intent
     if (data.intent === 'transfer_money') {
       sonnerToast.success("Voice command recognized!");
 
-      // 1. Extract Account Number
-      // The API returns 'recipient_account', code previously looked for 'entities.account_number'
       const accNum = data.recipient_account || data.entities?.account_number;
       
-      // Only fill if it's found and valid (ignoring "UNKNOWN_ACCOUNT" placeholder)
       if (accNum && accNum !== "UNKNOWN_ACCOUNT") {
         setRecipientAccount(accNum);
       }
 
-      // 2. Extract Amount
-      // The API returns 'amount' at the top level
       const valAmount = data.amount || data.entities?.amount;
       if (valAmount) {
         setAmount(formatCurrency(String(valAmount)));
       }
 
-      // 3. Extract Description
       const desc = data.description || data.entities?.description;
       if (desc) {
         setReason(desc);
@@ -100,10 +90,8 @@ const SafetyChecking = () => {
     }
   };
 
-  // --- HANDLE SCAM CHECK WITH RAG ---
   const handleScamCheck = async (userMessage: string, imageData: string | undefined, toastId: string | number) => {
     try {
-      // Match AIChat format: send image_data directly in message
       const payload = { 
         messages: [{ 
           role: "user", 
@@ -134,19 +122,16 @@ const SafetyChecking = () => {
         }
       }
 
-      // Check if scam is detected
       const isSuspicious = scamVerdict.toLowerCase().includes('scam') || 
                           scamVerdict.toLowerCase().includes('suspicious') || 
                           scamVerdict.toLowerCase().includes('fraud');
 
       if (isSuspicious) {
-        // If scam detected, show alert popup
         sonnerToast.dismiss(toastId);
         setFraudMessage(scamVerdict || "Potential scam detected in the transaction details.");
         setFraudImageData(imageData || null);
         setShowFraudAlert(true);
       } else {
-        // If safe, proceed with auto-fill
         sonnerToast.success("Scam check passed. Extracting details...", { id: toastId });
       }
     } catch (error: any) {
@@ -154,7 +139,6 @@ const SafetyChecking = () => {
     }
   };
 
-  // --- DETECT INTENT AND ROUTE ---
   const detectIntentAndRoute = async (userMessage: string, imageData: string | undefined, toastId: string | number) => {
     try {
       const payload = { messages: [{ role: "user", content: userMessage, image_data: imageData }] };
@@ -189,7 +173,6 @@ const SafetyChecking = () => {
     }
   };
 
-  // --- FILE & DRAG DROP HANDLERS ---
   const processImageUpload = async (file: File) => {
     setIsAiChecking(true);
     const toastId = sonnerToast.loading("Analyzing image with OCR and AI...");
@@ -285,7 +268,6 @@ const SafetyChecking = () => {
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }, []);
   
-  // --- FORM SUBMIT ---
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!senderAccountId) return sonnerToast.error("Please select a sending account.");
@@ -328,7 +310,6 @@ const SafetyChecking = () => {
     }
   };
 
-  // --- FRAUD ALERT HANDLERS ---
   const handleFraudContinue = () => { setShowFraudAlert(false); sonnerToast.info("Proceeding with transaction. Please verify details carefully."); };
   const handleFraudStop = () => { setShowFraudAlert(false); setRecipientAccount(""); setAmount(""); setReason(""); setFraudImageData(null); sonnerToast.warning("Transaction cancelled."); };
 

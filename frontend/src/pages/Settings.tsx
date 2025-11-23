@@ -23,7 +23,6 @@ const Settings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // Initialize user data when user or accounts load
   useEffect(() => {
     if (user) {
       setUserName(user.full_name || user.username || "");
@@ -31,28 +30,23 @@ const Settings = () => {
     }
   }, [user]);
 
-  // Get main account number
   const mainAccount = accounts?.find(acc => acc.account_type === 'main');
   const accountNumber = mainAccount?.account_number || "";
 
-  // Handle avatar file selection
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error(t('invalidImageFile') || "Please select a valid image file");
       return;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error(t('imageTooLarge') || "Image size must be less than 2MB");
       return;
     }
 
-    // Read and preview the image
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
@@ -61,7 +55,6 @@ const Settings = () => {
     reader.readAsDataURL(file);
   };
 
-  // Remove avatar
   const handleRemoveAvatar = () => {
     setAvatarPreview(null);
     if (fileInputRef.current) {
@@ -78,13 +71,10 @@ const Settings = () => {
     setIsSaving(true);
     
     try {
-      // Save avatar if changed
       if (avatarPreview && avatarPreview !== user?.avatar_url) {
         updateAvatar(avatarPreview);
       }
 
-      // TODO: Implement API call to update user profile (name, etc.)
-      // For now, just simulate the save
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success(t('settingsSaved') || "Settings saved successfully");
@@ -99,15 +89,12 @@ const Settings = () => {
   return (
     <DashboardLayout sidebar={<AppSidebar />}>
       <div className="p-4 md:p-6 lg:p-8 max-w-[1200px] mx-auto w-full">
-        {/* Header - Removed back button */}
         <div className="mb-6 animate-fade-in">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t('settingsTitle')}</h1>
           <p className="text-sm md:text-base text-muted-foreground">{t('manageAccountSettings')}</p>
         </div>
 
-        {/* Settings Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 animate-fade-in">
-          {/* Settings Menu */}
           <div className="glass-card rounded-2xl p-4 md:p-6 space-y-2 lg:col-span-1 h-fit">
             <h3 className="text-base md:text-lg font-semibold text-foreground mb-4">{t('menu')}</h3>
             <Button
@@ -119,7 +106,6 @@ const Settings = () => {
             </Button>
           </div>
 
-          {/* Profile Settings */}
           <div className="glass-card rounded-2xl p-4 md:p-6 space-y-4 md:space-y-6 lg:col-span-2">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <h3 className="text-lg md:text-xl font-semibold text-foreground">{t('profileSettings')}</h3>
@@ -135,14 +121,12 @@ const Settings = () => {
               )}
             </div>
 
-            {/* Loading State */}
             {(!user || accountsLoading) ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-accent-green" />
               </div>
             ) : (
               <div className="space-y-4 md:space-y-6">
-                {/* Profile Picture */}
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                   <div className="relative group">
                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden bg-accent-green/20 flex items-center justify-center border-2 border-border">
@@ -207,7 +191,6 @@ const Settings = () => {
                   </div>
                 </div>
 
-                {/* Name Field */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm md:text-base">{t('fullName')}</Label>
                   <Input
@@ -221,7 +204,6 @@ const Settings = () => {
                   />
                 </div>
 
-                {/* Email Field (Read-only) */}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm md:text-base">{t('email')}</Label>
                   <Input
@@ -236,7 +218,6 @@ const Settings = () => {
                   </p>
                 </div>
 
-                {/* Account Number (Read-only) */}
                 <div className="space-y-2">
                   <Label htmlFor="account" className="text-sm md:text-base">{t('accountNumber')}</Label>
                   <Input
@@ -253,7 +234,6 @@ const Settings = () => {
                   )}
                 </div>
 
-                {/* Save/Cancel Buttons */}
                 {isEditing && (
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button

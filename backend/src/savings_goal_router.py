@@ -1,10 +1,3 @@
-"""
-Savings Goals API Router
-Complete CRUD operations for savings goals
-
-NOTE: This router will be included in hyperclovax.py
-It will use models and dependencies from that file
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, TYPE_CHECKING

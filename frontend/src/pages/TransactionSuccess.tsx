@@ -13,7 +13,6 @@ interface TransactionData {
   bank: string;
   amount: string;
   description: string;
-  // Removed 'fee' from interface
 }
 
 const TransactionSuccess = () => {
@@ -24,18 +23,15 @@ const TransactionSuccess = () => {
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
-    // Get transaction data from navigation state
     const data = location.state as TransactionData;
     
     if (!data) {
-      // If no data, redirect to home
       navigate("/");
       return;
     }
 
     setTransactionData(data);
 
-    // Add transaction to localStorage
     const transaction = {
       id: Date.now().toString(),
       sender: data.sourceAccount,
@@ -52,7 +48,6 @@ const TransactionSuccess = () => {
     transactions.unshift(transaction);
     localStorage.setItem("transactions", JSON.stringify(transactions));
 
-    // Hide confetti after animation
     setTimeout(() => setShowConfetti(false), 3000);
   }, [location.state, navigate, t]);
 
@@ -128,7 +123,7 @@ const TransactionSuccess = () => {
                 </span>
               </div>
 
-              {/* REMOVED: Transaction Fee Row */}
+              {/*Transaction Fee Row */}
 
               <div className="flex flex-col sm:flex-row sm:justify-between py-3 border-b border-border/10">
                 <span className="text-sm text-muted-foreground mb-1 sm:mb-0">{t('transactionContent')}</span>
@@ -169,7 +164,7 @@ const TransactionSuccess = () => {
           </Button>
         </div>
 
-        {/* New Transaction Button */}
+        {/* Transaction Button */}
         <div className="mt-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           <Button
             variant="ghost"

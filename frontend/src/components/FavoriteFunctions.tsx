@@ -21,7 +21,6 @@ export const FavoriteFunctions = () => {
         {t('favoritesFunctions')}
       </h2>
       
-      {/* CONTAINER: Solid Dark Color (No Blur, No Transparency) */}
       <div className="
         w-full p-6 rounded-2xl
         bg-slate-900 
@@ -36,7 +35,6 @@ export const FavoriteFunctions = () => {
               onClick={() => navigate(func.path)}
               className="h-auto w-full flex flex-col items-center justify-start gap-3 p-0 hover:bg-transparent border-0 shadow-none group relative"
             >
-              {/* ICON CIRCLE: Solid Lighter Color */}
               <div className="
                 w-14 h-14 md:w-16 md:h-16 rounded-full 
                 bg-slate-800
@@ -49,11 +47,9 @@ export const FavoriteFunctions = () => {
                 group-hover:-translate-y-1 group-hover:shadow-lg
                 group-active:scale-95 group-active:translate-y-0
               ">
-                {/* Sharp Icon */}
                 <func.icon className={`h-6 w-6 md:h-7 md:w-7 stroke-2 ${func.color}`} />
               </div>
               
-              {/* Bright Solid Text */}
               <span className="text-[11px] md:text-xs font-medium text-center text-gray-200 group-hover:text-white transition-colors leading-tight w-full px-0.5 whitespace-normal line-clamp-2">
                 {t(func.labelKey as any)}
               </span>

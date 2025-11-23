@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-"""
-Create 'naverbank' database if it doesn't exist
-"""
+
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
@@ -21,21 +18,19 @@ print("🏗️  Creating 'naverbank' Database")
 print("=" * 70)
 print()
 
-# Connect to template1 to create new database
 template_url = f"postgresql://{username}:{password}@{server_info}/template1"
 
 try:
     print("🔌 Connecting to template1...")
     engine = create_engine(
         template_url,
-        isolation_level="AUTOCOMMIT",  # Required for CREATE DATABASE
+        isolation_level="AUTOCOMMIT",  
         pool_pre_ping=True
     )
     
     with engine.connect() as conn:
         print("✅ Connected!")
         
-        # Check if database already exists
         result = conn.execute(text("""
             SELECT 1 FROM pg_database WHERE datname = 'naverbank';
         """))
@@ -47,7 +42,6 @@ try:
             conn.execute(text("CREATE DATABASE naverbank;"))
             print("✅ Database 'naverbank' created successfully!")
         
-        # Verify by listing databases
         result = conn.execute(text("""
             SELECT datname FROM pg_database 
             WHERE datistemplate = false 

@@ -31,7 +31,7 @@ export const AddAccountDialog = ({ open, onOpenChange }: AddAccountDialogProps) 
       {
         onSuccess: () => {
           onOpenChange(false);
-          setAccountType('savings'); // Reset form
+          setAccountType('savings'); 
         },
       }
     );

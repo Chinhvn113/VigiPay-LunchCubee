@@ -29,7 +29,6 @@ export const SentinelFastChat = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- LOGIC XỬ LÝ (GIỮ NGUYÊN) ---
   const validateAndSetFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error(t('uploadImageError'));
@@ -132,7 +131,6 @@ export const SentinelFastChat = () => {
     }
   };
 
-  // --- UI RENDER KẾT QUẢ (GIỮ NGUYÊN) ---
   const renderResult = () => {
     if (!result) return null;
 
@@ -206,7 +204,6 @@ export const SentinelFastChat = () => {
     return null;
   };
 
-  // --- UI CHÍNH ---
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -219,25 +216,12 @@ export const SentinelFastChat = () => {
         <p className="text-sm text-muted-foreground mb-4">
           {t('pasteTextToCheck')}
         </p>
-        
-        {/* 
-            Sử dụng flex-1 để đẩy nút Analyze xuống dưới (nếu muốn),
-            hoặc bỏ flex-1 để nó nằm ngay dưới ô chat.
-        */}
         <div className="flex-1 flex flex-col mb-4">
-          {/* 
-              Cái DIV này đóng vai trò là khung viền (Card) duy nhất. 
-              Nó có border và rounded.
-          */}
           <div
             className="relative flex-1 flex flex-col border border-input rounded-lg bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
           >
-            {/* 
-                Textarea này đã được xóa hết viền (border-0, shadow-none, focus-visible:ring-0).
-                Nó trong suốt và nằm gọn trong DIV cha.
-            */}
             <Textarea
               placeholder={t('placeholderText')}
               className="flex-1 resize-none border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent text-base px-4 pt-3 pb-14 mt-0"
@@ -247,10 +231,8 @@ export const SentinelFastChat = () => {
               onPaste={handlePaste}
             />
             
-            {/* NÚT ADD FILE (Góc dưới phải) */}
             <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
               
-              {/* Thumbnail Preview */}
               {imagePreviewUrl && (
                 <div className="relative">
                   <img 
@@ -269,7 +251,6 @@ export const SentinelFastChat = () => {
                 </div>
               )}
 
-              {/* Nút Add Image nổi bật */}
               <Button
                   variant="secondary" 
                   size="sm"

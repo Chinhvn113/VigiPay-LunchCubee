@@ -38,7 +38,6 @@ import { useBankAccounts } from "@/hooks/useBankAccount";
 import * as savingsGoalsService from "@/apis/savingsGoalsService";
 import type { SavingsGoal, UpdateGoalRequest } from "@/apis/savingsGoalsService";
 
-// --- Types ---
 interface Transaction {
   id: number;
   type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
@@ -47,17 +46,14 @@ interface Transaction {
   transaction_date: string;
 }
 
-// Helper to determine if transaction is income
 const isIncomeTransaction = (type: string): boolean => {
   return type === 'income' || type === 'transfer_in';
 };
 
-// Helper to get display amount (always positive for display)
 const getDisplayAmount = (amount: number): number => {
   return Math.abs(amount);
 };
 
-// --- Mock Data & Helpers ---
 const fetchTransactions = async (): Promise<Transaction[]> => {
   const token = localStorage.getItem('accessToken');
   if (!token) throw new Error("Authentication token not found.");
@@ -81,13 +77,10 @@ const FinancialManagement = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   
-  // --- Fetch Bank Accounts ---
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts();
   
-  // --- State for Account Selection ---
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   
-  // --- Auto-select default account (savings > main) ---
   useEffect(() => {
     if (accounts && accounts.length > 0 && !selectedAccountId) {
       const savingsAccount = accounts.find(acc => acc.account_type === 'savings');
@@ -96,21 +89,18 @@ const FinancialManagement = () => {
     }
   }, [accounts, selectedAccountId]);
   
-  // --- Fetch Savings Goals for Selected Account ---
   const { data: goals = [], isLoading: goalsLoading } = useQuery({
     queryKey: ['savingsGoals', selectedAccountId],
     queryFn: () => selectedAccountId ? savingsGoalsService.getSavingsGoals(selectedAccountId) : Promise.resolve([]),
     enabled: !!selectedAccountId,
   });
   
-  // --- Fetch Account Summary ---
   const { data: summary } = useQuery({
     queryKey: ['accountSummary', selectedAccountId],
     queryFn: () => selectedAccountId ? savingsGoalsService.getAccountSummary(selectedAccountId) : Promise.resolve(null),
     enabled: !!selectedAccountId,
   });
   
-  // --- Mutations ---
   const createGoalMutation = useMutation({
     mutationFn: savingsGoalsService.createSavingsGoal,
     onSuccess: () => {
@@ -153,21 +143,17 @@ const FinancialManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   
-  // Form State
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [allocatedAmount, setAllocatedAmount] = useState("");
   const [goalColor, setGoalColor] = useState("bg-blue-500");
 
-  // Fetch Transactions
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['transactions'],
     queryFn: fetchTransactions,
     retry: false
   });
 
-  // --- Handlers for Savings Goals ---
-  
   const openAddDialog = () => {
     setEditingGoal(null);
     setGoalName("");
@@ -206,7 +192,6 @@ const FinancialManagement = () => {
     }
 
     if (editingGoal) {
-      // Update existing
       updateGoalMutation.mutate({
         id: editingGoal.id,
         data: {
@@ -217,7 +202,6 @@ const FinancialManagement = () => {
         },
       });
     } else {
-      // Create new
       createGoalMutation.mutate({
         account_id: selectedAccountId,
         name: goalName,
@@ -234,22 +218,18 @@ const FinancialManagement = () => {
     }
   };
 
-  // --- Get selected account details ---
   const selectedAccount = accounts?.find(acc => acc.id === selectedAccountId);
 
-  // --- Calculations ---
   const totalIncome = transactions?.filter(t => isIncomeTransaction(t.type)).reduce((sum, t) => sum + getDisplayAmount(t.amount), 0) || 0;
   const totalExpense = transactions?.filter(t => !isIncomeTransaction(t.type)).reduce((sum, t) => sum + getDisplayAmount(t.amount), 0) || 0;
   const currentSavings = totalIncome - totalExpense;
   
-  // --- Savings Goals Calculations - Use API Summary ---
   const accountGoals = goals;
   const totalBalance = summary?.total_balance || selectedAccount?.balance || 0;
   const totalAllocated = summary?.total_allocated || 0;
   const availableBalance = summary?.available_balance || (totalBalance - totalAllocated);
   const isOverAllocated = summary?.is_over_allocated || false;
 
-  // Updated stats array - Removed 'change' and 'trend'
   const stats = [
     { title: t('income'), value: `${totalIncome.toLocaleString('vi-VN')}đ`, icon: ArrowUpRight, color: "text-green-500" },
     { title: t('expense'), value: `${totalExpense.toLocaleString('vi-VN')}đ`, icon: ArrowDownRight, color: "text-red-500" },

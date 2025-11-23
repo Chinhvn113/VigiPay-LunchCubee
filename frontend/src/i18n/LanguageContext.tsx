@@ -14,13 +14,11 @@ const LANGUAGE_STORAGE_KEY = 'app_language';
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
-    // Try to get from localStorage
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
     if (stored && (stored === 'vi' || stored === 'en')) {
       return stored;
     }
     
-    // Try to detect browser language
     const browserLang = navigator.language.split('-')[0];
     if (browserLang === 'vi') {
       return 'vi';

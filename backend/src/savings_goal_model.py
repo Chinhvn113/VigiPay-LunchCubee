@@ -1,7 +1,3 @@
-"""
-Savings Goals Database Models
-Add to auth/models.py or create separate savings module
-"""
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func

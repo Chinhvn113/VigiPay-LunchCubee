@@ -21,8 +21,6 @@ interface ConfirmationData {
   receiver_name: string;
   amount: number;
   description?: string;
-  // fee and fee_payer are technically no longer needed here, 
-  // but kept optional in interface to prevent type errors if passed from history
   fee?: number;
   fee_payer?: 'sender' | 'receiver';
 }
@@ -36,7 +34,6 @@ const TransactionConfirmation = () => {
   const confirmationData = location.state as ConfirmationData;
 
   useEffect(() => {
-    // Redirect if no data
     if (!confirmationData) {
       navigate("/transaction");
     }
@@ -46,17 +43,14 @@ const TransactionConfirmation = () => {
     return null;
   }
 
-  // Calculate remaining balance locally to ensure it assumes 0 fee
   const finalRemainingBalance = confirmationData.sender_balance - confirmationData.amount;
 
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleConfirm = async () => {
-    // Check if this is VigiPay internal transfer
     const isInternalTransfer = confirmationData.receiver_bank === 'vigipay';
     
     if (isInternalTransfer) {
-      // Handle VigiPay internal transfer (REAL MONEY)
       setIsProcessing(true);
       try {
         const result = await executeInternalTransfer({
@@ -90,7 +84,6 @@ const TransactionConfirmation = () => {
         setIsProcessing(false);
       }
     } else {
-      // Handle external/mock transfer
       const transferData: any = {
         sender_account_id: confirmationData.sender_account_id,
         receiver_account_number: confirmationData.receiver_account_number,
@@ -133,7 +126,6 @@ const TransactionConfirmation = () => {
           bank: confirmationData.receiver_bank,
           amount: confirmationData.amount.toString(),
           description: confirmationData.description || '',
-          // Removed fee preference from edit data
         }
       }
     });
@@ -239,7 +231,6 @@ const TransactionConfirmation = () => {
                 <span className="font-semibold text-foreground">{formatCurrency(confirmationData.amount)}</span>
               </div>
               
-              {/* Fee and Total Deduction sections removed */}
                   
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">{t('remainingBalance') || 'Remaining Balance'}</span>

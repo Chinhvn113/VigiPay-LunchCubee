@@ -37,7 +37,6 @@ export const SafetyCheckingPage = () => {
 
   const transactionData = location.state;
 
-  // --- 1. Initial ML Safety Check ---
   useEffect(() => {
     if (!transactionData || !token) {
       toast.error("Missing transaction data. Redirecting...");
@@ -46,7 +45,6 @@ export const SafetyCheckingPage = () => {
     }
 
     const runInitialCheck = async () => {
-      // Check if transfer amount is more than 90% of account balance
       if (transactionData.sender_account_balance && transactionData.amount) {
         const transferPercentage = (transactionData.amount / transactionData.sender_account_balance) * 100;
         if (transferPercentage > 90) {
@@ -67,7 +65,7 @@ export const SafetyCheckingPage = () => {
           body: JSON.stringify({
             sender_account_id: transactionData.sender_account_id,
             amount: transactionData.amount,
-            receiver_account_number: transactionData.receiver_account_number || null  // Pass receiver account number to check destination user's fraud status
+            receiver_account_number: transactionData.receiver_account_number || null
           })
         });
 
@@ -97,7 +95,6 @@ export const SafetyCheckingPage = () => {
     runInitialCheck();
   }, [token, transactionData, navigate, t]);
 
-  // --- 2. Deeper LLM Scam Check ---
   const handleLlmCheck = async () => {
     if (!additionalInfo.trim()) {
       toast.error(t('provideContext'));
@@ -105,7 +102,6 @@ export const SafetyCheckingPage = () => {
     }
     setStatus('checking_llm');
     
-    // Combine transaction details with user's context for a better prompt
     const combinedInput = `
       A user is making a transfer with the following details:
       - Amount: ${transactionData.amount}
@@ -144,7 +140,7 @@ export const SafetyCheckingPage = () => {
       }
     } catch (error) {
       toast.error(t('checkErrorDesc'));
-      setStatus('ml_warning'); // Revert to the previous state
+      setStatus('ml_warning'); // Revert to previous state
     }
   };
 
@@ -153,7 +149,6 @@ export const SafetyCheckingPage = () => {
   };
 
   const handleConfirmHighAmount = () => {
-    // User confirmed they want to proceed with high amount transfer
     setStatus('checking_ml');
     // Re-run the safety check
     const runInitialCheck = async () => {
@@ -201,7 +196,6 @@ export const SafetyCheckingPage = () => {
     navigate("/transaction");
   }
 
-  // --- UI Rendering based on Status ---
   const renderContent = () => {
     switch (status) {
       case 'high_amount':

@@ -27,28 +27,23 @@ export const AppSidebar = () => {
   ];
 
   const handleNavClick = (e: React.MouseEvent) => {
-    // Mobile Logic: Close sidebar after navigation to clear the screen
     if (isMobile) {
       setOpen(false);
     }
-    // Desktop: Allow navigation regardless of sidebar state
-    // Don't expand sidebar when clicking menu items in icon mode
   };
 
   return (
     <Sidebar 
-      // Enable "icon" mode for desktop to allow minimizing
       collapsible="icon"
       className="border-sidebar-border transition-all duration-300 z-20"
     >
       <SidebarContent>
-        {/* Navigation */}
         <SidebarMenu className="px-2 pt-4 space-y-1">
           {navItems.map((item) => (
             <SidebarMenuItem key={item.path}>
               <SidebarMenuButton 
                 asChild 
-                tooltip={!open ? t(item.labelKey as any) : undefined} // Optional: Show tooltip when minimized
+                tooltip={!open ? t(item.labelKey as any) : undefined}
                 className="transition-all duration-300"
               >
                 <NavLink
@@ -56,7 +51,6 @@ export const AppSidebar = () => {
                   onClick={handleNavClick}
                   className={cn(
                     "flex items-center rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300",
-                    // Layout adjustments based on Open/Closed state
                     open ? "gap-3 px-4 py-3 hover:translate-x-1" : "justify-center w-full py-3",
                     isMobile && "gap-3 px-4 py-3"
                   )}
@@ -64,7 +58,6 @@ export const AppSidebar = () => {
                 >
                   <item.icon className="shrink-0 h-5 w-5" />
                   
-                  {/* Only show text when Expanded (open) OR on Mobile */}
                   {(open || isMobile) && (
                     <span className="whitespace-nowrap">
                       {t(item.labelKey as any)}

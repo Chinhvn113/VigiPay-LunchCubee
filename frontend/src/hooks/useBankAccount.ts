@@ -62,7 +62,6 @@ export const useCreateBankAccount = () => {
   return useMutation({
     mutationFn: (data: CreateAccountRequest) => createBankAccount(data),
     onSuccess: (newAccount) => {
-      // Invalidate and refetch accounts list
       queryClient.invalidateQueries({ queryKey: bankQueryKeys.accounts() });
       
       toast({
@@ -71,7 +70,6 @@ export const useCreateBankAccount = () => {
       });
     },
     onError: (error: any) => {
-      // Handle different error response formats
       let errorMessage = 'An error occurred';
       
       if (error.response?.data?.detail) {
@@ -107,13 +105,11 @@ export const useExecuteTransfer = () => {
   return useMutation({
     mutationFn: (data: TransferRequest) => executeTransfer(data),
     onSuccess: (transfer) => {
-      // Invalidate accounts (balance changed)
       queryClient.invalidateQueries({ queryKey: bankQueryKeys.accounts() });
       queryClient.invalidateQueries({ 
         queryKey: bankQueryKeys.account(transfer.sender_account_id) 
       });
       
-      // Invalidate transfer history
       queryClient.invalidateQueries({ queryKey: bankQueryKeys.transfers() });
       
       toast({
@@ -122,21 +118,17 @@ export const useExecuteTransfer = () => {
       });
     },
     onError: (error: any) => {
-      // Handle different error response formats
       let errorMessage = 'An error occurred';
       
       if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
         
-        // If detail is a string, use it directly
         if (typeof detail === 'string') {
           errorMessage = detail;
         } 
-        // If detail is an array (validation errors), extract messages
         else if (Array.isArray(detail)) {
           errorMessage = detail.map((err: any) => err.msg || JSON.stringify(err)).join(', ');
         }
-        // If detail is an object, try to stringify it
         else if (typeof detail === 'object') {
           errorMessage = JSON.stringify(detail);
         }

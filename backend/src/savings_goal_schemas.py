@@ -1,6 +1,3 @@
-"""
-Savings Goals Pydantic Schemas
-"""
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional
