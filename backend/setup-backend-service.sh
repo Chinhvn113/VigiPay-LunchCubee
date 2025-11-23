@@ -1,5 +1,5 @@
 #!/bin/bash
-# Auto-start backend on system boot
+# Auto-start backend on system boott
 
 cat > /etc/systemd/system/naverbank-backend.service << 'EOF'
 [Unit]
