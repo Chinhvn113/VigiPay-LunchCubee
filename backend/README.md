@@ -1,4 +1,4 @@
-# <img src="Vigipay-LunchCubee/frontend/public/logo.png" width="32" /> Vigipay backend
+# Vigipay backend
 
 FastAPI-based backend using HyperClovaX API.
 ---
