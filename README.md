@@ -1,4 +1,4 @@
-# <img src="https://github.com/user-attachments/assets/88192028-9803-4cfa-89ea-81d8182ccc72" width="128" /> VigiPay
+# <img src="https://github.com/user-attachments/assets/88192028-9803-4cfa-89ea-81d8182ccc72" width="48" /> VigiPay
 ### **AI-Powered Multimodal Banking Assistant with Real-Time Scam Detection**
 <img width="1920" height="1080" alt="Screenshot (13)" src="https://github.com/user-attachments/assets/c8ce0eb2-a596-4ab8-beca-c2dc03b56aab" />
 
@@ -142,6 +142,7 @@ npm run dev
 The application will be accessible at `http://localhost:5173`.
 
 ---
+
 
 
 
