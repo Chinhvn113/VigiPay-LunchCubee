@@ -12,7 +12,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  image_data?: string; // Optional base64 image data
+  image_data?: string; 
 }
 
 const ChatInputBar = ({ 
@@ -42,7 +42,6 @@ const ChatInputBar = ({
   handleKeyPress: (e: React.KeyboardEvent) => void;
   t: (key: string) => string;
 }) => {
-  // Create the ref *inside* this component
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -62,17 +61,15 @@ const ChatInputBar = ({
         const file = item.getAsFile();
         if (!file) return;
 
-        // Read file as base64 and directly update state via props
         const reader = new FileReader();
         reader.onload = (event) => {
           const base64String = event.target?.result as string;
-          // Directly set the image states using the passed props
           setSelectedImage(base64String);
           setImagePreview(base64String);
           console.log('📸 Image pasted from clipboard, size:', file.size);
         };
         reader.readAsDataURL(file);
-        break; // Only process the first image
+        break; 
       }
     }
   };
@@ -95,13 +92,10 @@ const ChatInputBar = ({
         };
 
         mediaRecorder.onstop = async () => {
-          // Get the audio blob
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           
-          // Stop all tracks
           stream.getTracks().forEach(track => track.stop());
 
-          // Call ASR API
           await callASRApi(audioBlob);
         };
 
@@ -136,7 +130,6 @@ const ChatInputBar = ({
       const result = await response.json();
       console.log('✅ ASR Result:', result);
 
-      // If we got text, add it to the input
       if (result.text) {
         const newText = input ? input + ' ' + result.text : result.text;
         setInput(newText);
@@ -154,7 +147,7 @@ const ChatInputBar = ({
     <div className="flex flex-col gap-0 w-full max-w-4xl mx-auto">
       {/* Hidden File Input - Must be rendered in DOM */}
       <input
-        ref={fileInputRef} // This now refers to the locally created ref
+        ref={fileInputRef} 
         type="file"
         accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
         onChange={handleFileSelect}
@@ -175,7 +168,7 @@ const ChatInputBar = ({
         />
         
         <div className="absolute right-2 flex items-center gap-2">
-          {/* Image Thumbnail Preview (same size as paperclip button) */}
+          {/* Image Thumbnail Preview*/}
           {imagePreview && (
             <div className="relative">
               <img 
@@ -200,30 +193,12 @@ const ChatInputBar = ({
             size="icon" 
             className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => {
-              // This also refers to the local ref now, and it will work correctly
               fileInputRef.current?.click();
             }}
             type="button"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-
-          {/* Voice Button
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={`h-8 w-8 rounded-full transition-colors ${
-              isRecording 
-                ? 'text-red-500 bg-red-50 hover:bg-red-100' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            onClick={handleMicrophoneClick}
-            disabled={isTyping && !isRecording}
-            type="button"
-            title={isRecording ? 'Stop recording' : 'Start recording'}
-          >
-            <Mic className="h-4 w-4" />
-          </Button> */}
 
           {/* Send Button */}
           <Button
@@ -254,7 +229,6 @@ const AIChat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // Base64 image
   const [imagePreview, setImagePreview] = useState<string | null>(null); // For UI preview
-  // const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isNewChat = messages.length <= 1;
 
@@ -299,9 +273,6 @@ const AIChat = () => {
   const clearSelectedImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
-    // if (fileInputRef.current) {
-    //   fileInputRef.current.value = '';
-    // }
   };
   
   const handleSend = async () => {
@@ -382,7 +353,6 @@ const AIChat = () => {
         }
       }
 
-      // If we received transfer data, switch to the transaction page with auto-filled form
       if (transferData && transferData.type === 'TRANSFER_INTENT') {
         console.log("🔄 Transfer data detected:", transferData);
         // Wait a moment for the message to display, then navigate
